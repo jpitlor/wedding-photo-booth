@@ -15,4 +15,9 @@
 	  </Content>
 	</ItemGroup>
 
+	<ItemGroup>
+	  <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="14.9.0" />
+	  <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.10" />
+	</ItemGroup>
+
 </Project>
