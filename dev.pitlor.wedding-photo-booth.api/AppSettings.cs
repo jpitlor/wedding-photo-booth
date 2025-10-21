@@ -10,6 +10,6 @@ public class AppSettings
     
     public string BigPicturePath => _configuration["BigPicturePath"]!;
     public string SmallPictureFolderPath => _configuration["SmallPictureFolderPath"]!;
-    public int MosaicWidth => Convert.ToInt32(_configuration["MosaicWidth"]);
-    public int MosaicHeight => Convert.ToInt32(_configuration["MosaicHeight"]);
+    public uint MosaicWidth => Convert.ToUInt32(_configuration["MosaicWidth"]);
+    public uint MosaicHeight => Convert.ToUInt32(_configuration["MosaicHeight"]);
 }
