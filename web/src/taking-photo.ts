@@ -13,7 +13,7 @@ export class TakingPhoto extends LitElement {
   canvas!: HTMLCanvasElement;
 
   @state()
-  showTimer = false;
+  interval: number | null = null;
 
   @state()
   secondsLeft = 10;
@@ -33,9 +33,6 @@ export class TakingPhoto extends LitElement {
           this.width = this.video.videoWidth;
           this.height = this.video.videoHeight;
           // const height = this.video.videoHeight / (this.video.videoWidth / width);
-
-          this.canvas.setAttribute("width", this.width.toString());
-          this.canvas.setAttribute("height", this.height.toString());
         });
 
         this.video.srcObject = stream;
@@ -49,7 +46,7 @@ export class TakingPhoto extends LitElement {
 
   takePicture() {
     const context = this.canvas.getContext("2d");
-    if (!(this.width && this.height && context)) {
+    if (!(this.width && this.height && context && this.interval)) {
       return;
     }
 
@@ -58,6 +55,7 @@ export class TakingPhoto extends LitElement {
     context.drawImage(this.video, 0, 0, this.width, this.height);
     const data = this.canvas.toDataURL("image/png");
     this.dispatchEvent(new CustomEvent("picture", { detail: data }));
+    clearInterval(this.interval);
   }
 
   decrementTimer() {
@@ -68,8 +66,7 @@ export class TakingPhoto extends LitElement {
   }
 
   startTimer() {
-    this.showTimer = true;
-    setInterval(this.decrementTimer.bind(this), 1000);
+    this.interval = setInterval(this.decrementTimer.bind(this), 1000);
   }
 
   render() {
@@ -79,8 +76,8 @@ export class TakingPhoto extends LitElement {
           <video></video>
           <canvas></canvas>
         </div>
-        <div class="actions" style=${`padding: ${this.showTimer ? 1.5 : 2}rem`}>
-          ${this.showTimer
+        <div class="actions" style=${`padding: ${this.interval ? 1.5 : 2}rem`}>
+          ${this.interval
             ? html` <wa-callout variant="neutral">
                 <wa-icon
                   slot="icon"

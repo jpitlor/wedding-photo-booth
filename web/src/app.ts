@@ -2,6 +2,7 @@ import { LitElement, html } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import "./landing-page.ts";
 import "./taking-photo.ts";
+import "./printing.ts";
 
 @customElement("pba-app")
 export class App extends LitElement {
@@ -17,7 +18,11 @@ export class App extends LitElement {
 
   handlePicture(e: CustomEvent) {
     this.state = "printing";
-    this.picture = e.detail.value;
+    this.picture = e.detail;
+  }
+
+  handleRestart() {
+    this.state = "landing-page";
   }
 
   render() {
@@ -25,9 +30,13 @@ export class App extends LitElement {
       case "taking-photo":
         return html`<pba-taking-photo
           @picture=${this.handlePicture}
+          @restart=${this.handleRestart}
         ></pba-taking-photo>`;
       case "printing":
-        return html`<img src=${this.picture} alt="" />`;
+        return html`<pba-printing
+          .picture=${this.picture}
+          @restart=${this.handleRestart}
+        ></pba-printing>`;
       case "landing-page":
       default:
         return html`
