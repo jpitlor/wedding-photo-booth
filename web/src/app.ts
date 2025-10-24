@@ -36,6 +36,7 @@ export class App extends LitElement {
         return html`<pba-printing
           .picture=${this.picture}
           @restart=${this.handleRestart}
+          @cancel=${this.handleStart}
         ></pba-printing>`;
       case "landing-page":
       default:
