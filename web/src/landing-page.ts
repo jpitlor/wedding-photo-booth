@@ -3,15 +3,26 @@ import { customElement } from "lit/decorators.js";
 import "@awesome.me/webawesome/dist/components/card/card.js";
 import "@awesome.me/webawesome/dist/components/button/button.js";
 
-@customElement("photo-booth-app")
-export class PhotoBoothApp extends LitElement {
+@customElement("pba-landing-page")
+export class LandingPage extends LitElement {
+  handleStart() {
+    this.dispatchEvent(new CustomEvent("start"));
+  }
+
   render() {
     return html`
       <div class="container">
         <wa-card>
           <h3 slot="header" class="card-title">Photo Booth</h3>
           Welcome to Cassie and Jordan's wedding!
-          <wa-button slot="header-actions" variant="brand">Start</wa-button>
+          <wa-button
+            slot="header-actions"
+            variant="brand"
+            @click=${this.handleStart}
+          >
+            <wa-icon slot="start" name="camera"></wa-icon>
+            Start
+          </wa-button>
         </wa-card>
       </div>
     `;
@@ -35,13 +46,13 @@ export class PhotoBoothApp extends LitElement {
       height: 100vh;
       background-image: url(/collage.png);
       background-repeat: repeat;
-      animation: animatedBackground 10s linear infinite;
+      animation: animatedBackground 20s linear infinite;
     }
   `;
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    "photo-booth-app": PhotoBoothApp;
+    "pba-landing-page": LandingPage;
   }
 }
