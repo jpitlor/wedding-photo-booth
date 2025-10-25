@@ -14,6 +14,6 @@ RUN npm --prefix web run build
 
 FROM python:3.14 as back_build
 COPY . .
-COPY --from front_build web/dist/ web/dist/
+COPY --from front_build web/dist/ static/
 COPY --from back_dependencies /usr/local/lib/python3.14/site-packages/ /usr/local/lib/python3.14/site-packages/
 ENTRYPOINT ["python3", "manage.py", "runserver"]
