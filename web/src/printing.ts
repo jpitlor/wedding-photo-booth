@@ -14,6 +14,7 @@ export class Printing extends LitElement {
 
   handleSubmit(event: SubmitEvent) {
     this.dispatchEvent(new CustomEvent("restart"));
+    console.log(event);
   }
 
   handleCancel() {
