@@ -9,6 +9,7 @@ class PhotoboothConfig(AppConfig):
     small_picture_folder_path = ""
     tiles_per_row = 1
     tiles_per_column = 1
+    resend_api_key = ""
 
     def ready(self):
         init_mosaic(self.big_picture_path, self.tiles_per_row, self.tiles_per_column)
