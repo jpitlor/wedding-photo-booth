@@ -4,7 +4,7 @@ import resend
 from PIL.Image import Image
 
 
-def send_email(image: Image, email_addresses: List[str]):
+def send_email(api_key: str, image: Image, email_addresses: List[str]):
     attachment: resend.Attachment = {
         "content": list(image.tobytes()),
         "filename": "photo.jpg"
@@ -17,4 +17,5 @@ def send_email(image: Image, email_addresses: List[str]):
         "html": "Thanks for attending our wedding!",
     }
 
+    resend.api_key = api_key
     resend.Emails.send(params)

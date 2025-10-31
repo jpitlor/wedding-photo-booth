@@ -1,6 +1,10 @@
+from typing import cast
+
 from PIL import Image
+from django.apps import apps
 from django.http import JsonResponse
 
+from photobooth.apps import PhotoboothConfig
 from photobooth.email import email
 from photobooth.forms import PrintImageForm
 from photobooth.mosaic import image_manipulation
@@ -18,14 +22,15 @@ def print_image(request):
     if not form.is_valid():
         return JsonResponse({"error": form.errors}, status=400)
 
+    config = cast(PhotoboothConfig, apps.get_app_config('photobooth'))
     image = Image.open(form.image)
     tile_number = -1
 
     # Always send to Jordan and Cassie
-    email.send_email(image, JORDAN_CASSIE_EMAIL)
-
+    emails = [JORDAN_CASSIE_EMAIL]
     if form.email_to_me:
-        email.send_email(image, form.email)
+        emails.append(form.email)
+    email.send_email(config.resend_api_key, image, emails)
 
     if form.print:
         printer.print_image(image, PrinterInstance.PERSONAL)

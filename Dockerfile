@@ -4,6 +4,7 @@ COPY web/package-lock.json web/package-lock.json
 RUN npm --prefix web ci
 
 FROM python:3.14 as back_dependencies
+RUN sudo apt install bluetooth bluez libbluetooth-dev
 COPY requirements.txt requirements.txt
 RUN python -m pip install -r requirements.txt
 
