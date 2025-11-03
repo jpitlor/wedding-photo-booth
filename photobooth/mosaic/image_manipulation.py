@@ -3,7 +3,7 @@ from io import BytesIO
 from random import randint
 from typing import Tuple
 
-from PIL import Image
+from PIL import Image, ImageDraw
 from django.core.files.uploadedfile import InMemoryUploadedFile
 
 from photobooth.models import BigImage, MosaicTile
@@ -29,13 +29,13 @@ def init_mosaic(big_image_path: str, tiles_per_row: int, tiles_per_column: int):
 
     # Finally, we can save our new image and its tiles
     image = Image.open(big_image_path)
-    new_model = BigImage(image_hash=image_hash)
+    new_model = BigImage(image_hash=image_hash, width=image.width, height=image.height)
     tile_width = image.width / tiles_per_row
     tile_height = image.height / tiles_per_column
     for x in range(tiles_per_row):
         for y in range(tiles_per_column):
             index = y * tiles_per_row + x
-            tile = image.crop((x * tile_width, y * tile_height, x * (tile_width + 1), y * (tile_height + 1)))
+            tile = image.crop((x * tile_width, y * tile_height, (x + 1) * tile_width, (y + 1) * tile_height))
             buffer = BytesIO()
             tile.save(buffer, format='JPEG')
             tile_file = InMemoryUploadedFile(buffer, None, f"tile_{index}.jpg", 'image/jpeg', buffer.getbuffer().nbytes, None)
@@ -60,3 +60,14 @@ def overlay_tile(image: Image.Image) -> Tuple[Image.Image, int]:
     tile.save()
 
     return overlaid_image, i
+
+
+def get_tile(tile_number: int, default_size: Tuple[int, int]) -> Image.Image:
+    tile = MosaicTile.objects.get(index=tile_number)
+    if tile.is_printed:
+        return Image.open(tile.image)
+    else:
+        image = Image.new("RGB", default_size, (221, 221, 221))
+        draw = ImageDraw.Draw(image)
+        draw.text((default_size[0] / 2, default_size[1] / 2), text=str(tile_number), fill="white", align="center")
+        return image

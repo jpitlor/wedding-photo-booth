@@ -2,7 +2,7 @@ import time
 import queue
 from loguru import logger
 
-from task import (
+from .task import (
     StartSessionTask,
     GetStatusTask,
     GetSettingTask,
@@ -10,9 +10,9 @@ from task import (
     GetPrintReadyTask,
     RebootTask
 )
-import image
+from .image import prepare_image
 
-from exceptions import (
+from .exceptions import (
     ClientUnavailableError,
     ReceiveTimeoutError,
     AckError,
@@ -21,8 +21,8 @@ from exceptions import (
     NoPaperError,
     WrongSmartSheetError
 )
-from client import ClientThread
-from utils import parse_incoming_message
+from .client import ClientThread
+from .utils import parse_incoming_message
 
 PRINT_BATTERY_MIN = 30
 PRINT_DATA_CHUNK = 990
@@ -47,7 +47,7 @@ class Ivy2Printer:
         image_data = bytes()
 
         if type(target) is str:
-            image_data = image.prepare_image(target, auto_crop)
+            image_data = prepare_image(target, auto_crop)
         elif type(target) is bytes:
             image_data = target
         else:

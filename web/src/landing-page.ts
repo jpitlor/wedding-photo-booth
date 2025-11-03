@@ -9,8 +9,13 @@ export class LandingPage extends LitElement {
     this.dispatchEvent(new CustomEvent("start"));
   }
 
+  handleAdmin() {
+    this.dispatchEvent(new CustomEvent("admin"));
+  }
+
   render() {
     return html`
+      <div id="hiddenAdminTrigger" @click=${this.handleAdmin} />
       <div class="container">
         <wa-card>
           <h3 slot="header" class="card-title">Photo Booth</h3>
@@ -47,6 +52,15 @@ export class LandingPage extends LitElement {
       background-image: url(/collage.png);
       background-repeat: repeat;
       animation: animatedBackground 20s linear infinite;
+    }
+
+    #hiddenAdminTrigger {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100px;
+      height: 100px;
+      z-index: 999;
     }
   `;
 }

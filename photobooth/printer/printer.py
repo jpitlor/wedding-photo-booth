@@ -14,7 +14,7 @@ class PrinterInstance(Enum):
     PERSONAL = 2
 
 
-def init():
+def init_printer():
     mosaic_printer.connect(mosaic_printer_mac_address)
     personal_printer.connect(personal_printer_mac_address)
 

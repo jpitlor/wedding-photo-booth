@@ -1,6 +1,6 @@
 import struct
 
-from utils import parse_bit_range
+from .utils import parse_bit_range
 
 START_CODE = 17167
 

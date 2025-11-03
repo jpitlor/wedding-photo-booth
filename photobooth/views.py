@@ -2,11 +2,12 @@ from typing import cast
 
 from PIL import Image
 from django.apps import apps
-from django.http import JsonResponse
+from django.http import JsonResponse, FileResponse
 
 from photobooth.apps import PhotoboothConfig
 from photobooth.email import email
 from photobooth.forms import PrintImageForm
+from photobooth.models import BigImage
 from photobooth.mosaic import image_manipulation
 from photobooth.printer import printer
 from photobooth.printer.printer import PrinterInstance
@@ -41,3 +42,15 @@ def print_image(request):
         tile_number = actual_tile_number
 
     return JsonResponse({'tileNumber': tile_number})
+
+
+def get_tile(request, tile_number: int):
+    # First, we need to calculate the tile size using the image dimensions stored
+    # in the database and the tile count in the config
+    config = cast(PhotoboothConfig, apps.get_app_config('photobooth'))
+    big_image = BigImage.objects.first()
+    tile_width = int(big_image.width / config.tiles_per_row)
+    tile_height = int(big_image.height / config.tiles_per_column)
+
+    image = image_manipulation.get_tile(tile_number, (tile_width, tile_height))
+    return FileResponse(image)

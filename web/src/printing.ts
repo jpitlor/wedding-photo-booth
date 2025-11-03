@@ -1,4 +1,4 @@
-import { LitElement, css, html } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import "@awesome.me/webawesome/dist/components/switch/switch.js";
 import "@awesome.me/webawesome/dist/components/button/button.js";
@@ -21,6 +21,8 @@ export class Printing extends LitElement {
     this.dispatchEvent(new CustomEvent("cancel"));
   }
 
+  handleSendToMeUpdate() {}
+
   render() {
     return html`
       <div class="container">
@@ -41,11 +43,21 @@ export class Printing extends LitElement {
             <h2>Yes!</h2>
             <wa-switch checked disabled>Send to Cassie and Jordan</wa-switch>
             <br />
-            <wa-switch>Email to me</wa-switch>
+            <wa-switch name="emailToMe" @change=${this.handleSendToMeUpdate}>
+              Email to me
+            </wa-switch>
             <br />
-            <wa-switch>Print as a sticker</wa-switch>
+            ${
+              this.sendToMe
+                ? html`
+                    <wa-input name="email" label="My Email"></wa-input>
+                    <br />
+                  `
+                : nothing
+            }
+            <wa-switch name="print">Print as a sticker</wa-switch>
             <br />
-            <wa-switch>Print as a tile in the mosaic</wa-switch>
+            <wa-switch name="printInMosaic">Print as a tile in the mosaic</wa-switch>
             <br />
             <br />
             <wa-button type="submit" variant="brand">

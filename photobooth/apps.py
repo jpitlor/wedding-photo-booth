@@ -1,5 +1,4 @@
 from django.apps import AppConfig
-from photobooth.mosaic.image_manipulation import init_mosaic
 
 class PhotoboothConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
@@ -12,4 +11,9 @@ class PhotoboothConfig(AppConfig):
     resend_api_key = ""
 
     def ready(self):
+        from photobooth.mosaic.image_manipulation import init_mosaic
+        from photobooth.printer.printer import init_printer
+
         init_mosaic(self.big_picture_path, self.tiles_per_row, self.tiles_per_column)
+        init_printer()
+        pass
