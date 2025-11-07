@@ -8,7 +8,8 @@ import "./admin.ts";
 @customElement("pba-app")
 export class App extends LitElement {
   @state()
-  state: "landing-page" | "taking-photo" | "printing" | "admin" = "admin";
+  state: "landing-page" | "taking-photo" | "printing" | "admin" =
+    "landing-page";
 
   @state()
   picture = "";

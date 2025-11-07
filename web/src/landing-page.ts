@@ -15,8 +15,8 @@ export class LandingPage extends LitElement {
 
   render() {
     return html`
-      <div id="hiddenAdminTrigger" @click=${this.handleAdmin} />
       <div class="container">
+        <div id="hiddenAdminTrigger" @click=${this.handleAdmin}></div>
         <wa-card>
           <h3 slot="header" class="card-title">Photo Booth</h3>
           Welcome to Cassie and Jordan's wedding!

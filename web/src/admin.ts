@@ -2,6 +2,8 @@ import { LitElement, css, html } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import "@awesome.me/webawesome/dist/components/dialog/dialog.js";
 import "@awesome.me/webawesome/dist/components/button/button.js";
+import { map } from "lit/directives/map.js";
+import { range } from "lit/directives/range.js";
 
 @customElement("pba-admin")
 export class Admin extends LitElement {
@@ -9,33 +11,53 @@ export class Admin extends LitElement {
   tile: number | null = null;
 
   @state()
-  gridColumns = 5;
+  gridColumns = 10;
 
   @state()
-  gridRows = 10;
+  gridRows = 15;
 
-  handleEditAdminMode() {
-    this.dispatchEvent(new CustomEvent("reset"));
+  handleExitAdminMode(_: Event) {
+    this.dispatchEvent(new CustomEvent("restart"));
+  }
+
+  makeHandleTileClick(i: number) {
+    return (_: Event) => {
+      this.tile = i;
+    };
+  }
+
+  handleTileClose(_: Event) {
+    this.tile = null;
   }
 
   render() {
     return html`
       <wa-dialog label="Tile Actions" .open=${!!this.tile}>
         Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-        <wa-button slot="footer" variant="brand" data-dialog="close">
+        <wa-button
+          slot="footer"
+          variant="brand"
+          data-dialog="close"
+          @click=${this.handleTileClose}
+        >
           Close
         </wa-button>
       </wa-dialog>
       <div class="container">
         <div class="actions">
-          <wa-button @click=${this.handleEditAdminMode}>
+          <wa-button @click=${this.handleExitAdminMode}>
             Exit Admin Mode
           </wa-button>
           <wa-button>Reset Whole Mosaic</wa-button>
         </div>
         <div class="images">
-          ${new Array(this.gridColumns * this.gridRows).map(
-            (_, i) => html`<img .src=${`/api/tile/${i}`} alt="" />`,
+          ${map(
+            range(this.gridRows * this.gridColumns),
+            (i) =>
+              html`<img
+                .src=${`/api/tile/${i}`}
+                @click=${this.makeHandleTileClick(i)}
+              />`,
           )}
         </div>
       </div>
@@ -45,10 +67,29 @@ export class Admin extends LitElement {
   static styles = css`
     .container {
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       width: 100vw;
       height: 100vh;
+    }
+
+    .actions {
+      padding: 2rem;
+    }
+
+    .images {
+      display: grid;
+      position: relative;
+      flex: 1;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 5px;
+      padding: 2rem;
+      overflow-y: auto;
+    }
+
+    .images > img {
+      max-width: 100%;
     }
   `;
 }

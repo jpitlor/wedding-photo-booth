@@ -16,7 +16,7 @@ export class TakingPhoto extends LitElement {
   interval: number | null = null;
 
   @state()
-  secondsLeft = 10;
+  secondsLeft = 1; // TODO: For testing. Change back to 10.
 
   @state()
   width = 0;

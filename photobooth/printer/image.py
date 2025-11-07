@@ -43,5 +43,5 @@ def prepare_image(path, auto_crop=True, quality=100, preview=False):
         out_image = out_image.rotate(180.0)
 
     with BytesIO() as out_stream:
-        out_image.save(out_stream, format="JPEG", quality=quality)
+        out_image.save(out_stream, format="PNG", quality=quality)
         return out_stream.getvalue()

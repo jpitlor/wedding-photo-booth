@@ -1,8 +1,13 @@
-import { LitElement, css, html, nothing } from "lit";
-import { customElement, property, state } from "lit/decorators.js";
+import { LitElement, css, html } from "lit";
+import { customElement, property, query, state } from "lit/decorators.js";
+import * as KioskBoard from "kioskboard";
+
 import "@awesome.me/webawesome/dist/components/switch/switch.js";
 import "@awesome.me/webawesome/dist/components/button/button.js";
 import "@awesome.me/webawesome/dist/components/card/card.js";
+import "@awesome.me/webawesome/dist/components/input/input.js";
+import type WaSwitch from "@awesome.me/webawesome/dist/components/switch/switch.d.ts";
+import "kioskboard/dist/kioskboard-2.3.0.min.css";
 
 @customElement("pba-printing")
 export class Printing extends LitElement {
@@ -10,19 +15,52 @@ export class Printing extends LitElement {
   picture: string = "";
 
   @state()
-  sendToMe = false;
+  emailToMe = false;
 
-  handleSubmit(event: SubmitEvent) {
-    this.dispatchEvent(new CustomEvent("restart"));
-    console.log(event);
+  @query("form")
+  form!: HTMLFormElement;
+
+  @query("wa-switch[name=emailToMe]")
+  emailToMeSwitch!: WaSwitch;
+
+  async handleSubmit(event: SubmitEvent) {
+    event.preventDefault();
+    const response = await fetch("/api/print", {
+      method: "POST",
+      body: new FormData(this.form),
+    });
+    const body = await response.json();
+    console.log(body);
+    return false;
   }
 
   handleCancel() {
     this.dispatchEvent(new CustomEvent("cancel"));
   }
 
-  handleSendToMeUpdate() {}
+  handleSendToMeUpdate(_: Event) {
+    this.emailToMe = this.emailToMeSwitch.checked;
 
+    // Ideally, we'd like to do this on the first update, but the inner
+    // shadow root hasn't rendered at that point. Perhaps there's an event
+    // we can attach this to that I don't know about.
+    const deepInput = this.renderRoot
+      .querySelector("wa-input")
+      ?.shadowRoot?.querySelector("input");
+    if (!deepInput) {
+      return;
+    }
+
+    KioskBoard.run(deepInput, {
+      keysArrayOfObjects: [
+        { "0": "@", "1": "." }, //"2": "@gmail.com", "3": "@yahoo.com" },
+      ],
+      theme: "light",
+    });
+  }
+
+  // I don't like using snake_case, but I don't feel like figuring out why
+  // Django can't convert between snake and camel case.
   render() {
     return html`
       <div class="container">
@@ -40,24 +78,25 @@ export class Printing extends LitElement {
             <span>or</span>
           </div>
           <form @submit=${this.handleSubmit}>
+            <input name="image" .value=${this.picture} />
             <h2>Yes!</h2>
             <wa-switch checked disabled>Send to Cassie and Jordan</wa-switch>
             <br />
-            <wa-switch name="emailToMe" @change=${this.handleSendToMeUpdate}>
+            <wa-switch name="email_to_me" @change=${this.handleSendToMeUpdate}>
               Email to me
             </wa-switch>
             <br />
-            ${
-              this.sendToMe
-                ? html`
-                    <wa-input name="email" label="My Email"></wa-input>
-                    <br />
-                  `
-                : nothing
-            }
+            <wa-input
+              name="email"
+              label="My Email"
+              class=${this.emailToMe ? "visible" : ""}
+              data-kioskboard-type="keyboard"
+              data-kioskboard-placement="bottom"
+              data-kioskboard-specialcharacters="false"
+            ></wa-input>
             <wa-switch name="print">Print as a sticker</wa-switch>
             <br />
-            <wa-switch name="printInMosaic">Print as a tile in the mosaic</wa-switch>
+            <wa-switch name="print_in_mosaic">Print as a tile in the mosaic</wa-switch>
             <br />
             <br />
             <wa-button type="submit" variant="brand">
@@ -111,6 +150,20 @@ export class Printing extends LitElement {
     .divider-container {
       margin: 2rem 0;
       position: relative;
+    }
+
+    input[name="image"] {
+      display: none;
+    }
+
+    wa-input {
+      margin-top: 1rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    wa-input.visible {
+      display: block;
     }
   `;
 }

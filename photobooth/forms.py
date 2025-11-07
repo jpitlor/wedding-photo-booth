@@ -1,8 +1,8 @@
 from django import forms
 
 class PrintImageForm(forms.Form):
-    image = forms.FileField()
-    email_to_me = forms.BooleanField()
-    email = forms.EmailField()
-    print = forms.BooleanField()
-    print_in_mosaic = forms.BooleanField()
+    image = forms.CharField()
+    email_to_me = forms.BooleanField(required=False, initial=False)
+    email = forms.EmailField(required=False)
+    print = forms.BooleanField(required=False, initial=False)
+    print_in_mosaic = forms.BooleanField(required=False, initial=False)

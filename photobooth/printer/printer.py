@@ -15,12 +15,14 @@ class PrinterInstance(Enum):
 
 
 def init_printer():
-    mosaic_printer.connect(mosaic_printer_mac_address)
-    personal_printer.connect(personal_printer_mac_address)
+    pass
+    # mosaic_printer.connect(mosaic_printer_mac_address)
+    # personal_printer.connect(personal_printer_mac_address)
 
 
 def print_image(image: Image, instance: PrinterInstance):
-    if instance == PrinterInstance.MOSAIC:
-        mosaic_printer.print(image.tobytes())
-    elif instance == PrinterInstance.PERSONAL:
-        personal_printer.print(image.tobytes())
+    pass
+    # if instance == PrinterInstance.MOSAIC:
+    #     mosaic_printer.print(image.tobytes())
+    # elif instance == PrinterInstance.PERSONAL:
+    #     personal_printer.print(image.tobytes())
