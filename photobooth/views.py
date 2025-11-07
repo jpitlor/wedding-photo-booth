@@ -69,3 +69,7 @@ def get_tile(request, tile_number: int):
     image.save(buffer, format='PNG')
     buffer.seek(0)
     return FileResponse(buffer, filename="tile.jpg")
+
+
+def get_big_image(request):
+    return BigImage.objects.first()

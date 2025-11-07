@@ -29,9 +29,15 @@ def init_mosaic(big_image_path: str, tiles_per_row: int, tiles_per_column: int):
 
     # Finally, we can save our new image and its tiles
     image = Image.open(big_image_path)
-    new_model = BigImage(image_hash=image_hash, width=image.width, height=image.height)
     tile_width = image.width / tiles_per_row
     tile_height = image.height / tiles_per_column
+    new_model = BigImage(image_hash=image_hash,
+                         width=image.width,
+                         height=image.height,
+                         tile_width=tile_width,
+                         tile_height=tile_height,
+                         row_count=tiles_per_column,
+                         column_count=tiles_per_row)
     for x in range(tiles_per_row):
         for y in range(tiles_per_column):
             index = y * tiles_per_row + x

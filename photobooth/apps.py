@@ -11,9 +11,14 @@ class PhotoboothConfig(AppConfig):
     resend_api_key = ""
 
     def ready(self):
-        from photobooth.mosaic.image_manipulation import init_mosaic
-        from photobooth.printer.printer import init_printer
+        # noinspection PyBroadException
+        # The exception could be concerning, but it likely is the result of
+        # the database not being migrated yet
+        try:
+            from photobooth.mosaic.image_manipulation import init_mosaic
+            from photobooth.printer.printer import init_printer
 
-        init_mosaic(self.big_picture_path, self.tiles_per_row, self.tiles_per_column)
-        init_printer()
-        pass
+            init_mosaic(self.big_picture_path, self.tiles_per_row, self.tiles_per_column)
+            init_printer()
+        except:
+            pass
