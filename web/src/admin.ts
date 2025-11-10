@@ -4,6 +4,7 @@ import "@awesome.me/webawesome/dist/components/dialog/dialog.js";
 import "@awesome.me/webawesome/dist/components/button/button.js";
 import { map } from "lit/directives/map.js";
 import { range } from "lit/directives/range.js";
+import { appSlice, store } from "./store.ts";
 
 @customElement("pba-admin")
 export class Admin extends LitElement {
@@ -17,7 +18,7 @@ export class Admin extends LitElement {
   gridRows = 15;
 
   handleExitAdminMode(_: Event) {
-    this.dispatchEvent(new CustomEvent("restart"));
+    store.dispatch(appSlice.actions.setPage("landing-page"));
   }
 
   makeHandleTileClick(i: number) {

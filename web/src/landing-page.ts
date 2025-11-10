@@ -2,15 +2,16 @@ import { LitElement, css, html } from "lit";
 import { customElement } from "lit/decorators.js";
 import "@awesome.me/webawesome/dist/components/card/card.js";
 import "@awesome.me/webawesome/dist/components/button/button.js";
+import { appSlice, store } from "./store.ts";
 
 @customElement("pba-landing-page")
 export class LandingPage extends LitElement {
   handleStart() {
-    this.dispatchEvent(new CustomEvent("start"));
+    store.dispatch(appSlice.actions.setPage("taking-photo"));
   }
 
   handleAdmin() {
-    this.dispatchEvent(new CustomEvent("admin"));
+    store.dispatch(appSlice.actions.setPage("admin"));
   }
 
   render() {

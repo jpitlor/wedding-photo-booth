@@ -1,6 +1,7 @@
 import { LitElement, css, html } from "lit";
 import { customElement, property, query, state } from "lit/decorators.js";
 import * as KioskBoard from "kioskboard";
+import { api, appSlice, store } from "./store.ts";
 
 import "@awesome.me/webawesome/dist/components/switch/switch.js";
 import "@awesome.me/webawesome/dist/components/button/button.js";
@@ -12,30 +13,49 @@ import "kioskboard/dist/kioskboard-2.3.0.min.css";
 @customElement("pba-printing")
 export class Printing extends LitElement {
   @property()
-  picture: string = "";
+  personalImage = store.getState().app.personalImage;
+
+  @property()
+  mosaicImage = store.getState().app.mosaicImage;
 
   @state()
   emailToMe = false;
 
+  @state()
+  tileNumber: number | undefined = undefined;
+
+  @state()
+  unsubscribe: (() => void) | null = null;
+
   @query("form")
   form!: HTMLFormElement;
 
-  @query("wa-switch[name=emailToMe]")
+  @query("wa-switch[name=email_to_me]")
   emailToMeSwitch!: WaSwitch;
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.unsubscribe = store.subscribe(() => {
+      this.personalImage = store.getState().app.personalImage;
+      this.mosaicImage = store.getState().app.mosaicImage;
+    });
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.unsubscribe?.();
+  }
 
   async handleSubmit(event: SubmitEvent) {
     event.preventDefault();
-    const response = await fetch("/api/print", {
-      method: "POST",
-      body: new FormData(this.form),
-    });
-    const body = await response.json();
-    console.log(body);
+    const body = new FormData(this.form);
+    const response = await store.dispatch(api.endpoints.print.initiate(body));
+    this.tileNumber = response.data?.tileNumber;
     return false;
   }
 
   handleCancel() {
-    this.dispatchEvent(new CustomEvent("cancel"));
+    store.dispatch(appSlice.actions.setPage("taking-photo"));
   }
 
   handleSendToMeUpdate(_: Event) {
@@ -64,7 +84,7 @@ export class Printing extends LitElement {
   render() {
     return html`
       <div class="container">
-        <img src=${this.picture} alt="" />
+        <img src=${this.personalImage} alt="" />
         <wa-card>
           <h1 slot="header">Do you like it?</h1>
           <h2>No!</h2>
@@ -78,7 +98,8 @@ export class Printing extends LitElement {
             <span>or</span>
           </div>
           <form @submit=${this.handleSubmit}>
-            <input name="image" .value=${this.picture} />
+            <input name="personal_image" .value=${this.personalImage} />
+            <input name="mosaic_image" .value=${this.mosaicImage} />
             <h2>Yes!</h2>
             <wa-switch checked disabled>Send to Cassie and Jordan</wa-switch>
             <br />
@@ -152,7 +173,8 @@ export class Printing extends LitElement {
       position: relative;
     }
 
-    input[name="image"] {
+    input[name="personal_image"],
+    input[name="mosaic_image"] {
       display: none;
     }
 

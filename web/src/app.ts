@@ -1,59 +1,46 @@
-import { LitElement, html } from "lit";
+import { LitElement, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import "./landing-page.ts";
 import "./taking-photo.ts";
 import "./printing.ts";
 import "./admin.ts";
+import { store } from "./store.ts";
 
 @customElement("pba-app")
 export class App extends LitElement {
   @state()
-  state: "landing-page" | "taking-photo" | "printing" | "admin" =
-    "landing-page";
+  page = store.getState().app.page;
 
   @state()
-  picture = "";
+  unsubscribe: (() => void) | null = null;
 
-  handleStart() {
-    this.state = "taking-photo";
+  connectedCallback() {
+    super.connectedCallback();
+    this.unsubscribe = store.subscribe(() => {
+      this.page = store.getState().app.page;
+    });
   }
 
-  handlePicture(e: CustomEvent) {
-    this.state = "printing";
-    this.picture = e.detail;
-  }
-
-  handleRestart() {
-    this.state = "landing-page";
-  }
-
-  handleAdmin() {
-    this.state = "admin";
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.unsubscribe?.();
   }
 
   render() {
-    switch (this.state) {
+    if (!this.page) {
+      return nothing;
+    }
+
+    switch (this.page) {
       case "taking-photo":
-        return html`<pba-taking-photo
-          @picture=${this.handlePicture}
-          @restart=${this.handleRestart}
-        ></pba-taking-photo>`;
+        return html`<pba-taking-photo></pba-taking-photo>`;
       case "printing":
-        return html`<pba-printing
-          .picture=${this.picture}
-          @restart=${this.handleRestart}
-          @cancel=${this.handleStart}
-        ></pba-printing>`;
+        return html`<pba-printing></pba-printing>`;
       case "admin":
-        return html`<pba-admin @restart=${this.handleRestart}></pba-admin>`;
+        return html`<pba-admin></pba-admin>`;
       case "landing-page":
       default:
-        return html`
-          <pba-landing-page
-            @start=${this.handleStart}
-            @admin=${this.handleAdmin}
-          ></pba-landing-page>
-        `;
+        return html` <pba-landing-page></pba-landing-page> `;
     }
   }
 }

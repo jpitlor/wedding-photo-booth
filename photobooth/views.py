@@ -5,7 +5,7 @@ from typing import cast
 
 from PIL import Image
 from django.apps import apps
-from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.forms.models import model_to_dict
 from django.http import JsonResponse, FileResponse
 from django.views.decorators.csrf import csrf_exempt
 
@@ -32,8 +32,7 @@ def print_image(request):
     config = cast(PhotoboothConfig, apps.get_app_config('photobooth'))
     image_base64 = form.cleaned_data["image"][len("data:image/png;base64,"):]
     image_bytes = io.BytesIO(base64.decodebytes(bytes(image_base64, "utf-8")))
-    # TODO: crop this in the browser
-    image = Image.open(image_bytes).convert("RGBA").crop((0, 0, 633, 633))
+    image = Image.open(image_bytes).convert("RGBA")
     tile_number = -1
 
     # Always send to Jordan and Cassie
@@ -68,8 +67,9 @@ def get_tile(request, tile_number: int):
     buffer = BytesIO()
     image.save(buffer, format='PNG')
     buffer.seek(0)
-    return FileResponse(buffer, filename="tile.jpg")
+    return FileResponse(buffer, filename="tile.png")
 
 
 def get_big_image(request):
-    return BigImage.objects.first()
+    result = model_to_dict(BigImage.objects.first())
+    return JsonResponse(result)

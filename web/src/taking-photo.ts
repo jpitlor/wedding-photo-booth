@@ -3,6 +3,12 @@ import { css, html, LitElement } from "lit";
 import "@awesome.me/webawesome/dist/components/button/button.js";
 import "@awesome.me/webawesome/dist/components/callout/callout.js";
 import "@awesome.me/webawesome/dist/components/icon/icon.js";
+import { styleMap } from "lit/directives/style-map.js";
+import type { Metadata } from "./types.ts";
+import { api, appSlice, store } from "./store.ts";
+
+const PrinterWidth = parseInt(import.meta.env.VITE_PHOTO_PRINTER_WIDTH);
+const PrinterHeight = parseInt(import.meta.env.VITE_PHOTO_PRINTER_HEIGHT);
 
 @customElement("pba-taking-photo")
 export class TakingPhoto extends LitElement {
@@ -13,16 +19,16 @@ export class TakingPhoto extends LitElement {
   canvas!: HTMLCanvasElement;
 
   @state()
+  subscription: (() => void) | null = null;
+
+  @state()
+  metadata: Metadata | undefined = undefined;
+
+  @state()
   interval: number | null = null;
 
   @state()
   secondsLeft = 1; // TODO: For testing. Change back to 10.
-
-  @state()
-  width = 0;
-
-  @state()
-  height = 0;
 
   connectedCallback() {
     super.connectedCallback();
@@ -30,9 +36,7 @@ export class TakingPhoto extends LitElement {
       .getUserMedia({ video: true, audio: false })
       .then((stream) => {
         this.video.addEventListener("canplay", (_) => {
-          this.width = this.video.videoWidth;
-          this.height = this.video.videoHeight;
-          // const height = this.video.videoHeight / (this.video.videoWidth / width);
+          this.video.style.maxHeight = `${this.video.videoHeight}px`;
         });
 
         this.video.srcObject = stream;
@@ -42,19 +46,44 @@ export class TakingPhoto extends LitElement {
       .catch((err) => {
         console.error(`An error occurred: ${err}`);
       });
+    const getMetadata = store.dispatch(api.endpoints.getMetadata.initiate());
+    getMetadata.then((result) => {
+      this.metadata = result.data;
+    });
+    this.subscription = getMetadata.unsubscribe;
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.subscription?.();
   }
 
   takePicture() {
     const context = this.canvas.getContext("2d");
-    if (!(this.width && this.height && context && this.interval)) {
+    if (!context || !this.interval || !this.metadata) {
       return;
     }
 
-    this.canvas.width = this.width;
-    this.canvas.height = this.height;
-    context.drawImage(this.video, 0, 0, this.width, this.height);
-    const data = this.canvas.toDataURL("image/png");
-    this.dispatchEvent(new CustomEvent("picture", { detail: data }));
+    // First we'll get the full image
+    context.drawImage(this.video, 0, 0, PrinterWidth, PrinterHeight);
+    const fullImage = this.canvas.toDataURL("image/png");
+
+    // Then we'll get the cropped mosaic image
+    const x = (PrinterWidth - this.metadata.tile_width) / 2;
+    const y = (PrinterHeight - this.metadata.tile_height) / 2;
+    context.reset();
+    context.drawImage(
+      this.video,
+      x,
+      y,
+      this.metadata.tile_width,
+      this.metadata.tile_height,
+    );
+    const mosaicImage = this.canvas.toDataURL("image/png");
+
+    store.dispatch(appSlice.actions.setPersonalImage(fullImage));
+    store.dispatch(appSlice.actions.setMosaicImage(mosaicImage));
+    store.dispatch(appSlice.actions.setPage("printing"));
     clearInterval(this.interval);
   }
 
@@ -73,8 +102,12 @@ export class TakingPhoto extends LitElement {
     return html`
       <div class="container">
         <div class="viewfinder">
-          <video></video>
-          <canvas></canvas>
+          <video
+            style=${styleMap({
+              aspectRatio: `${PrinterWidth} / ${PrinterHeight}`,
+            })}
+          ></video>
+          <canvas width=${PrinterWidth} height=${PrinterHeight}></canvas>
         </div>
         <div class="actions" style=${`padding: ${this.interval ? 1.5 : 2}rem`}>
           ${this.interval
@@ -89,7 +122,7 @@ export class TakingPhoto extends LitElement {
               </wa-callout>`
             : html`<wa-button variant="brand" @click=${this.startTimer}>
                 <wa-icon slot="start" name="camera"></wa-icon>
-                Take Photo (10s timer)
+                Take Photo (${this.secondsLeft}s timer)
               </wa-button>`}
         </div>
       </div>
@@ -110,6 +143,7 @@ export class TakingPhoto extends LitElement {
       display: flex;
       align-items: center;
       justify-content: center;
+      z-index: 999;
     }
 
     .viewfinder {
@@ -117,16 +151,12 @@ export class TakingPhoto extends LitElement {
       display: flex;
       align-items: center;
       justify-content: center;
+      overflow: hidden;
     }
 
     canvas {
       position: absolute;
       opacity: 0;
-    }
-
-    video {
-      height: 100%;
-      //aspect-ratio: 2 / 3;
     }
   `;
 }

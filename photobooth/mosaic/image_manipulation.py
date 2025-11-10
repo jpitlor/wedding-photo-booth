@@ -44,7 +44,7 @@ def init_mosaic(big_image_path: str, tiles_per_row: int, tiles_per_column: int):
             tile = image.crop((x * tile_width, y * tile_height, (x + 1) * tile_width, (y + 1) * tile_height))
             buffer = BytesIO()
             tile.save(buffer, format='PNG')
-            tile_file = InMemoryUploadedFile(buffer, None, f"tile_{index}.jpg", 'image/png', buffer.getbuffer().nbytes, None)
+            tile_file = InMemoryUploadedFile(buffer, None, f"tile_{index}.png", 'image/png', buffer.getbuffer().nbytes, None)
             tile = MosaicTile(index=index, image=tile_file)
             tile.save()
     new_model.save()
@@ -65,7 +65,7 @@ def overlay_tile(image: Image.Image) -> Tuple[Image.Image, int]:
     overlaid_image = Image.alpha_composite(tile_image, image)
     buffer = BytesIO()
     overlaid_image.save(buffer, format='PNG')
-    overlaid_image_file = InMemoryUploadedFile(buffer, None, f"tile_{tile.index}.jpg", 'image/png', buffer.getbuffer().nbytes, None)
+    overlaid_image_file = InMemoryUploadedFile(buffer, None, f"tile_{tile.index}.png", 'image/png', buffer.getbuffer().nbytes, None)
     tile.image = overlaid_image_file
     tile.save()
 
