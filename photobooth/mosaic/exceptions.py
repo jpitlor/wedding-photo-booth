@@ -1,0 +1,2 @@
+class MosaicFullException(Exception):
+    pass

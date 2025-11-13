@@ -10,7 +10,3 @@ export interface Metadata {
   row_count: number;
   column_count: number;
 }
-
-export interface PrintResponse {
-  tileNumber: number;
-}

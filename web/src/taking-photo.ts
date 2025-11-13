@@ -7,8 +7,12 @@ import { styleMap } from "lit/directives/style-map.js";
 import type { Metadata } from "./types.ts";
 import { api, appSlice, store } from "./store.ts";
 
-const PrinterWidth = parseInt(import.meta.env.VITE_PHOTO_PRINTER_WIDTH);
-const PrinterHeight = parseInt(import.meta.env.VITE_PHOTO_PRINTER_HEIGHT);
+interface Size {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
 
 @customElement("pba-taking-photo")
 export class TakingPhoto extends LitElement {
@@ -22,6 +26,9 @@ export class TakingPhoto extends LitElement {
   subscription: (() => void) | null = null;
 
   @state()
+  videoHeight = 0;
+
+  @state()
   metadata: Metadata | undefined = undefined;
 
   @state()
@@ -30,15 +37,48 @@ export class TakingPhoto extends LitElement {
   @state()
   secondsLeft = 1; // TODO: For testing. Change back to 10.
 
+  _getRenderedVideoSize(): Size {
+    const naturalWidth = this.video.videoWidth;
+    const naturalHeight = this.video.videoHeight;
+    const computedStyle = getComputedStyle(this.video);
+    const computedWidth = parseInt(
+      computedStyle.width.substring(0, computedStyle.width.length - 2),
+    );
+    const computedHeight = parseInt(
+      computedStyle.height.substring(0, computedStyle.height.length - 2),
+    );
+
+    const actualAspectRatio = computedWidth / computedHeight;
+    const naturalAspectRatio = naturalWidth / naturalHeight;
+    console.log(
+      naturalWidth,
+      naturalHeight,
+      computedStyle,
+      computedWidth,
+      computedHeight,
+    );
+
+    const width =
+      actualAspectRatio > naturalAspectRatio
+        ? naturalWidth
+        : naturalHeight * actualAspectRatio;
+    const height =
+      actualAspectRatio > naturalAspectRatio
+        ? naturalWidth / actualAspectRatio
+        : naturalHeight;
+    const left =
+      actualAspectRatio > naturalAspectRatio ? 0 : (naturalWidth - width) / 2;
+    const top =
+      actualAspectRatio > naturalAspectRatio ? (naturalHeight - height) / 2 : 0;
+
+    return { left, top, width, height };
+  }
+
   connectedCallback() {
     super.connectedCallback();
     navigator.mediaDevices
       .getUserMedia({ video: true, audio: false })
       .then((stream) => {
-        this.video.addEventListener("canplay", (_) => {
-          this.video.style.maxHeight = `${this.video.videoHeight}px`;
-        });
-
         this.video.srcObject = stream;
         // noinspection JSIgnoredPromiseFromCall
         this.video.play();
@@ -64,25 +104,22 @@ export class TakingPhoto extends LitElement {
       return;
     }
 
-    // First we'll get the full image
-    context.drawImage(this.video, 0, 0, PrinterWidth, PrinterHeight);
-    const fullImage = this.canvas.toDataURL("image/png");
-
-    // Then we'll get the cropped mosaic image
-    const x = (PrinterWidth - this.metadata.tile_width) / 2;
-    const y = (PrinterHeight - this.metadata.tile_height) / 2;
-    context.reset();
+    const renderedSize = this._getRenderedVideoSize();
+    console.log(renderedSize);
     context.drawImage(
       this.video,
-      x,
-      y,
-      this.metadata.tile_width,
+      renderedSize.left,
+      renderedSize.top,
+      renderedSize.width,
+      renderedSize.height,
+      0,
+      0,
       this.metadata.tile_height,
+      this.metadata.tile_width,
     );
-    const mosaicImage = this.canvas.toDataURL("image/png");
+    const image = this.canvas.toDataURL("image/png");
 
-    store.dispatch(appSlice.actions.setPersonalImage(fullImage));
-    store.dispatch(appSlice.actions.setMosaicImage(mosaicImage));
+    store.dispatch(appSlice.actions.setImage(image));
     store.dispatch(appSlice.actions.setPage("printing"));
     clearInterval(this.interval);
   }
@@ -104,10 +141,13 @@ export class TakingPhoto extends LitElement {
         <div class="viewfinder">
           <video
             style=${styleMap({
-              aspectRatio: `${PrinterWidth} / ${PrinterHeight}`,
+              aspectRatio: `${this.metadata?.tile_height} / ${this.metadata?.tile_width}`,
             })}
           ></video>
-          <canvas width=${PrinterWidth} height=${PrinterHeight}></canvas>
+          <canvas
+            width=${this.metadata?.tile_height}
+            height=${this.metadata?.tile_width}
+          ></canvas>
         </div>
         <div class="actions" style=${`padding: ${this.interval ? 1.5 : 2}rem`}>
           ${this.interval
@@ -157,6 +197,12 @@ export class TakingPhoto extends LitElement {
     canvas {
       position: absolute;
       opacity: 0;
+      z-index: -1;
+    }
+
+    video {
+      width: 100%;
+      object-fit: cover;
     }
   `;
 }

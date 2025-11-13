@@ -10,7 +10,6 @@ from .task import (
     GetPrintReadyTask,
     RebootTask
 )
-from .image import prepare_image
 
 from .exceptions import (
     ClientUnavailableError,
@@ -43,21 +42,8 @@ class Ivy2Printer:
     def is_connected(self):
         return self.client.alive.is_set()
 
-    def print(self, target, auto_crop=True, transfer_timeout=60):
-        image_data = bytes()
-
-        if type(target) is str:
-            image_data = prepare_image(target, auto_crop)
-        elif type(target) is bytes:
-            image_data = target
-        else:
-            raise ValueError(
-                "Unsupported target; expected string or bytes but got {}".format(
-                    type(target)
-                )
-            )
-
-        image_length = len(image_data)
+    def print(self, target: bytes, transfer_timeout=60):
+        image_length = len(target)
 
         self.check_print_worthiness()
         self.get_setting()
@@ -69,7 +55,7 @@ class Ivy2Printer:
         start_index = 0
         while True:
             end_index = min(start_index + PRINT_DATA_CHUNK, image_length)
-            image_chunk = image_data[start_index:end_index]
+            image_chunk = target[start_index:end_index]
 
             self.client.outbound_q.put(image_chunk)
 

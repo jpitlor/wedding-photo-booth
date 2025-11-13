@@ -33,8 +33,12 @@ export class Admin extends LitElement {
 
   render() {
     return html`
-      <wa-dialog label="Tile Actions" .open=${!!this.tile}>
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+      <wa-dialog
+        label="Tile Actions"
+        open=${this.tile != null}
+        @wa-after-hide=${this.handleTileClose}
+      >
+        <img src=${`/api/tile/${this.tile}`} alt="" />
         <wa-button
           slot="footer"
           variant="brand"

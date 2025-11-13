@@ -7,22 +7,20 @@ import "@awesome.me/webawesome/dist/components/switch/switch.js";
 import "@awesome.me/webawesome/dist/components/button/button.js";
 import "@awesome.me/webawesome/dist/components/card/card.js";
 import "@awesome.me/webawesome/dist/components/input/input.js";
+import "@awesome.me/webawesome/dist/components/dialog/dialog.js";
 import type WaSwitch from "@awesome.me/webawesome/dist/components/switch/switch.d.ts";
 import "kioskboard/dist/kioskboard-2.3.0.min.css";
 
 @customElement("pba-printing")
 export class Printing extends LitElement {
   @property()
-  personalImage = store.getState().app.personalImage;
-
-  @property()
-  mosaicImage = store.getState().app.mosaicImage;
+  image = store.getState().app.image;
 
   @state()
   emailToMe = false;
 
   @state()
-  tileNumber: number | undefined = undefined;
+  formState: "open" | "loading" | "error" | "finished" = "open";
 
   @state()
   unsubscribe: (() => void) | null = null;
@@ -36,8 +34,7 @@ export class Printing extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     this.unsubscribe = store.subscribe(() => {
-      this.personalImage = store.getState().app.personalImage;
-      this.mosaicImage = store.getState().app.mosaicImage;
+      this.image = store.getState().app.image;
     });
   }
 
@@ -49,8 +46,8 @@ export class Printing extends LitElement {
   async handleSubmit(event: SubmitEvent) {
     event.preventDefault();
     const body = new FormData(this.form);
-    const response = await store.dispatch(api.endpoints.print.initiate(body));
-    this.tileNumber = response.data?.tileNumber;
+    const result = await store.dispatch(api.endpoints.print.initiate(body));
+    this.formState = result.error ? "error" : "finished";
     return false;
   }
 
@@ -83,47 +80,56 @@ export class Printing extends LitElement {
   // Django can't convert between snake and camel case.
   render() {
     return html`
+      <wa-dialog label="Photo Printing" .open=${this.formState === "finished"}>
+        Success! The printers take a while to print, so please be patient if you
+        are printing your photo.
+        <br />
+        If you are adding your photo to the mosaic, the tile number will be at
+        the bottom of the photo.
+      </wa-dialog>
+      <wa-dialog label="Error Printing Photo" .open=${this.formState === "error"}>
+        There was an error printing or emailing your photo. If there are no more
+        spots in the mosaic left, that is the cause. Otherwise, please find 
+        Jordan.
+      </wa-dialog>
       <div class="container">
-        <img src=${this.personalImage} alt="" />
-        <wa-card>
-          <h1 slot="header">Do you like it?</h1>
-          <h2>No!</h2>
-          <div>
+        <img src=${this.image} alt="" />
+        <div class="options">
+          <wa-card>
+            <h2 slot="header">I hate it!</h2>
             <wa-button type="button" variant="danger" @click=${this.handleCancel}>
               Take another picture
             </wa-button>
-          </div>
-          <div class="divider-container">
-            <hr />
-            <span>or</span>
-          </div>
-          <form @submit=${this.handleSubmit}>
-            <input name="personal_image" .value=${this.personalImage} />
-            <input name="mosaic_image" .value=${this.mosaicImage} />
-            <h2>Yes!</h2>
-            <wa-switch checked disabled>Send to Cassie and Jordan</wa-switch>
-            <br />
-            <wa-switch name="email_to_me" @change=${this.handleSendToMeUpdate}>
-              Email to me
-            </wa-switch>
-            <br />
-            <wa-input
-              name="email"
-              label="My Email"
-              class=${this.emailToMe ? "visible" : ""}
-              data-kioskboard-type="keyboard"
-              data-kioskboard-placement="bottom"
-              data-kioskboard-specialcharacters="false"
-            ></wa-input>
-            <wa-switch name="print">Print as a sticker</wa-switch>
-            <br />
-            <wa-switch name="print_in_mosaic">Print as a tile in the mosaic</wa-switch>
-            <br />
-            <br />
-            <wa-button type="submit" variant="brand">
-              Print and/or send
-            </wa-button>
-          </form>
+          </wa-card>
+          <wa-card>
+            <h2 slot="header">I love it!</h2>
+            <form @submit=${this.handleSubmit}>
+              <input name="image" .value=${this.image} />
+              <wa-switch checked disabled>Send to Cassie and Jordan</wa-switch>
+              <br />
+              <wa-switch name="email_to_me" @change=${this.handleSendToMeUpdate}>
+                Email to me
+              </wa-switch>
+              <wa-input
+                name="email"
+                label="My Email"
+                data-kioskboard-type="keyboard"
+                data-kioskboard-placement="bottom"
+                data-kioskboard-specialcharacters="false"
+                class=${this.emailToMe ? "" : "invisible"}
+              ></wa-input>
+              <br />
+              <wa-switch name="print">Print as a sticker</wa-switch>
+              <br />
+              <wa-switch name="print_in_mosaic">Print as a tile in the mosaic</wa-switch>
+              <br />
+              <br />
+              <wa-button type="submit" variant="brand">
+                Print and/or send
+              </wa-button>
+            </form>
+          </wa-card>
+        </div>
         </div>
       </div>
     `;
@@ -142,50 +148,51 @@ export class Printing extends LitElement {
     .container {
       background-color: #eeeeee;
       display: flex;
-      flex-direction: row;
+      flex-direction: column;
       gap: 2rem;
       align-items: center;
-      padding: 2rem;
-      width: calc(100vw - 4rem);
-      height: calc(100vh - 4rem);
+      justify-content: center;
+      height: 100vh;
     }
 
     img {
-      width: 50%;
+      max-height: 40vh;
     }
 
     wa-card {
       display: flex;
       flex-direction: column;
-      flex: 1;
     }
 
-    .divider-container span {
-      position: absolute;
-      top: -0.75rem;
-      left: calc(50% - 1rem);
-      padding: 0 0.5rem;
-      background: #ffffff;
+    [name="image"] {
+      display: none;
     }
 
-    .divider-container {
-      margin: 2rem 0;
-      position: relative;
-    }
-
-    input[name="personal_image"],
-    input[name="mosaic_image"] {
+    .invisible {
       display: none;
     }
 
     wa-input {
       margin-top: 1rem;
-      margin-bottom: 1rem;
-      display: none;
     }
 
-    wa-input.visible {
-      display: block;
+    .options {
+      display: flex;
+      flex-direction: row;
+      gap: 4rem;
+      align-items: flex-start;
+      justify-content: center;
+    }
+
+    h1 {
+      margin: 0;
+      padding: 0;
+    }
+
+    .columns {
+      display: flex;
+      flex-direction: row;
+      gap: 1rem;
     }
   `;
 }

@@ -6,7 +6,7 @@ from typing import cast
 from PIL import Image
 from django.apps import apps
 from django.forms.models import model_to_dict
-from django.http import JsonResponse, FileResponse
+from django.http import JsonResponse, FileResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from photobooth.apps import PhotoboothConfig
@@ -14,6 +14,7 @@ from photobooth.email import email
 from photobooth.forms import PrintImageForm
 from photobooth.models import BigImage
 from photobooth.mosaic import image_manipulation
+from photobooth.mosaic.exceptions import MosaicFullException
 from photobooth.printer import printer
 from photobooth.printer.printer import PrinterInstance
 
@@ -45,11 +46,13 @@ def print_image(request):
         printer.print_image(image, PrinterInstance.PERSONAL)
 
     if form.cleaned_data["print_in_mosaic"]:
-        (overlaid_image, actual_tile_number) = image_manipulation.overlay_tile(image)
-        printer.print_image(overlaid_image, PrinterInstance.MOSAIC)
-        tile_number = actual_tile_number
+        try:
+            (overlaid_image, actual_tile_number) = image_manipulation.overlay_tile(image)
+            printer.print_image(overlaid_image, PrinterInstance.MOSAIC)
+        except MosaicFullException:
+            return JsonResponse("Mosaic is already full", status=500)
 
-    return JsonResponse({'tileNumber': tile_number})
+    return HttpResponse(status=200)
 
 
 def get_tile(request, tile_number: int):
@@ -57,17 +60,15 @@ def get_tile(request, tile_number: int):
     # in the database and the tile count in the config
     config = cast(PhotoboothConfig, apps.get_app_config('photobooth'))
     big_image = BigImage.objects.first()
-    tile_width = int(big_image.width / config.tiles_per_row)
-    tile_height = int(big_image.height / config.tiles_per_column)
 
     # Then we can actually get the calculated tile image
-    image = image_manipulation.get_tile(tile_number, (tile_width, tile_height))
+    image = image_manipulation.get_tile(tile_number, (config.photo_printer_width, config.photo_printer_height))
 
     # And return it to the browser
     buffer = BytesIO()
     image.save(buffer, format='PNG')
     buffer.seek(0)
-    return FileResponse(buffer, filename="tile.png")
+    return FileResponse(buffer, filename=f"tile_{tile_number}.png")
 
 
 def get_big_image(request):
