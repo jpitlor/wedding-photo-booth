@@ -22,7 +22,8 @@ class PhotoboothConfig(AppConfig):
             from photobooth.mosaic.image_manipulation import init_mosaic
             from photobooth.printer.printer import init_printer
 
-            init_mosaic(self.big_picture_path, self.photo_printer_width, self.photo_printer_height)
+            # The photos will be in landscape mode, so they will appear sideways on the printed sticker
+            init_mosaic(self.big_picture_path, self.photo_printer_height, self.photo_printer_width)
             init_printer()
         except:
             pass

@@ -34,6 +34,7 @@ export const api = createApi({
     print: builder.mutation<void, FormData>({
       query: (body) => ({
         url: "/print",
+        method: "POST",
         body,
       }),
     }),

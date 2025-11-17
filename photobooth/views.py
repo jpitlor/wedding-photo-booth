@@ -47,7 +47,7 @@ def print_image(request):
 
     if form.cleaned_data["print_in_mosaic"]:
         try:
-            (overlaid_image, actual_tile_number) = image_manipulation.overlay_tile(image)
+            overlaid_image = image_manipulation.overlay_tile(image)
             printer.print_image(overlaid_image, PrinterInstance.MOSAIC)
         except MosaicFullException:
             return JsonResponse("Mosaic is already full", status=500)
