@@ -4,7 +4,7 @@ import "@awesome.me/webawesome/dist/components/dialog/dialog.js";
 import "@awesome.me/webawesome/dist/components/button/button.js";
 import { map } from "lit/directives/map.js";
 import { range } from "lit/directives/range.js";
-import { appSlice, store } from "./store.ts";
+import { api, appSlice, store } from "./store.ts";
 
 @customElement("pba-admin")
 export class Admin extends LitElement {
@@ -16,6 +16,9 @@ export class Admin extends LitElement {
 
   @state()
   gridRows = 15;
+
+  @state()
+  logs: string | undefined = undefined;
 
   handleExitAdminMode(_: Event) {
     store.dispatch(appSlice.actions.setPage("landing-page"));
@@ -31,14 +34,58 @@ export class Admin extends LitElement {
     this.tile = null;
   }
 
+  handleResetMosaic() {
+    if (!confirm("Are you sure?")) {
+      return;
+    }
+
+    store.dispatch(api.endpoints.resetMosaic.initiate());
+  }
+
+  async handleSeeLogs() {
+    const result = await store.dispatch(api.endpoints.getLogs.initiate());
+    this.logs = result.data?.logs;
+  }
+
+  handleLogsClose() {
+    this.logs = undefined;
+  }
+
+  handleResetTile() {}
+
+  handleReprintTile() {}
+
   render() {
     return html`
       <wa-dialog
+        light-dismiss
         label="Tile Actions"
-        open=${this.tile != null}
+        .open=${this.tile != null}
         @wa-after-hide=${this.handleTileClose}
       >
         <img src=${`/api/tile/${this.tile}`} alt="" />
+        <wa-button slot="footer" @click=${this.handleReprintTile}>
+          Reprint
+        </wa-button>
+        <wa-button slot="footer" @click=${this.handleResetTile}>
+          Reset
+        </wa-button>
+        <wa-button
+          slot="footer"
+          variant="brand"
+          data-dialog="close"
+          @click=${this.handleTileClose}
+        >
+          Close
+        </wa-button>
+      </wa-dialog>
+      <wa-dialog
+        light-dismiss
+        label="Logs"
+        .open=${!!this.logs}
+        @wa-after-hide=${this.handleLogsClose}
+      >
+        <pre>${this.logs}</pre>
         <wa-button
           slot="footer"
           variant="brand"
@@ -53,7 +100,10 @@ export class Admin extends LitElement {
           <wa-button @click=${this.handleExitAdminMode}>
             Exit Admin Mode
           </wa-button>
-          <wa-button>Reset Whole Mosaic</wa-button>
+          <wa-button @click=${this.handleResetMosaic}>
+            Reset Whole Mosaic
+          </wa-button>
+          <wa-button @click=${this.handleSeeLogs}>See Logs</wa-button>
         </div>
         <div class="images">
           ${map(
@@ -95,6 +145,14 @@ export class Admin extends LitElement {
 
     .images > img {
       max-width: 100%;
+    }
+
+    wa-dialog {
+      --width: 75vw;
+    }
+
+    wa-dialog img {
+      width: 100%;
     }
   `;
 }

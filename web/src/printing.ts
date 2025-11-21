@@ -1,6 +1,5 @@
 import { LitElement, css, html } from "lit";
 import { customElement, property, query, state } from "lit/decorators.js";
-import * as KioskBoard from "kioskboard";
 import { api, appSlice, store } from "./store.ts";
 
 import "@awesome.me/webawesome/dist/components/switch/switch.js";
@@ -9,7 +8,12 @@ import "@awesome.me/webawesome/dist/components/card/card.js";
 import "@awesome.me/webawesome/dist/components/input/input.js";
 import "@awesome.me/webawesome/dist/components/dialog/dialog.js";
 import type WaSwitch from "@awesome.me/webawesome/dist/components/switch/switch.d.ts";
-import "kioskboard/dist/kioskboard-2.3.0.min.css";
+
+interface FormState {
+  state: "open" | "loading" | "error" | "finished";
+  title?: string;
+  message?: string;
+}
 
 @customElement("pba-printing")
 export class Printing extends LitElement {
@@ -20,7 +24,7 @@ export class Printing extends LitElement {
   emailToMe = false;
 
   @state()
-  formState: "open" | "loading" | "error" | "finished" = "open";
+  formState: FormState = { state: "open" };
 
   @state()
   unsubscribe: (() => void) | null = null;
@@ -47,7 +51,11 @@ export class Printing extends LitElement {
     event.preventDefault();
     const body = new FormData(this.form);
     const result = await store.dispatch(api.endpoints.print.initiate(body));
-    this.formState = result.error ? "error" : "finished";
+    this.formState = {
+      state: result.error ? "error" : "finished",
+      title: result.error ? "Something went wrong" : "Success",
+      message: result.data,
+    };
     return false;
   }
 
@@ -57,40 +65,18 @@ export class Printing extends LitElement {
 
   handleSendToMeUpdate(_: Event) {
     this.emailToMe = this.emailToMeSwitch.checked;
-
-    // Ideally, we'd like to do this on the first update, but the inner
-    // shadow root hasn't rendered at that point. Perhaps there's an event
-    // we can attach this to that I don't know about.
-    const deepInput = this.renderRoot
-      .querySelector("wa-input")
-      ?.shadowRoot?.querySelector("input");
-    if (!deepInput) {
-      return;
-    }
-
-    KioskBoard.run(deepInput, {
-      keysArrayOfObjects: [
-        { "0": "@", "1": "." }, //"2": "@gmail.com", "3": "@yahoo.com" },
-      ],
-      theme: "light",
-    });
   }
 
   // I don't like using snake_case, but I don't feel like figuring out why
   // Django can't convert between snake and camel case.
   render() {
     return html`
-      <wa-dialog label="Photo Printing" .open=${this.formState === "finished"}>
-        Success! The printers take a while to print, so please be patient if you
-        are printing your photo.
-        <br />
-        If you are adding your photo to the mosaic, the tile number will be at
-        the bottom of the photo.
-      </wa-dialog>
-      <wa-dialog label="Error Printing Photo" .open=${this.formState === "error"}>
-        There was an error printing or emailing your photo. If there are no more
-        spots in the mosaic left, that is the cause. Otherwise, please find 
-        Jordan.
+      <wa-dialog
+        light-dismiss
+        label=${this.formState.title} 
+        .open=${this.formState.state === "finished" || this.formState.state === "error"}
+      >
+        ${this.formState.message}
       </wa-dialog>
       <div class="container">
         <img src=${this.image} alt="" />
@@ -113,9 +99,7 @@ export class Printing extends LitElement {
               <wa-input
                 name="email"
                 label="My Email"
-                data-kioskboard-type="keyboard"
-                data-kioskboard-placement="bottom"
-                data-kioskboard-specialcharacters="false"
+                type="email"
                 class=${this.emailToMe ? "" : "invisible"}
               ></wa-input>
               <br />

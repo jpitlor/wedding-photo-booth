@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw
 from django.core.files.uploadedfile import InMemoryUploadedFile
 
 from photobooth.models import BigImage, MosaicTile
-from photobooth.mosaic.exceptions import MosaicFullException
+from photobooth.mosaic.exceptions import MosaicFullException, ImageManipulationException
 
 
 def init_mosaic(big_image_path: str, tile_width: int, tile_height: int):
@@ -51,8 +51,8 @@ def init_mosaic(big_image_path: str, tile_width: int, tile_height: int):
                          column_count=tiles_per_row)
 
     logging.info("Saving tile models")
-    for x in range(tiles_per_row):
-        for y in range(tiles_per_column):
+    for y in range(tiles_per_column):
+        for x in range(tiles_per_row):
             index = y * tiles_per_row + x
             tile = image.crop((x * tile_width, y * tile_height, (x + 1) * tile_width, (y + 1) * tile_height))
             buffer = BytesIO()
@@ -81,14 +81,19 @@ def overlay_tile(image: Image.Image) -> Image.Image:
     tile.is_printed = True
 
     # Overlay the image
-    logging.info("Overlaying provided image")
-    tile_image = Image.open(tile.image).convert("RGBA")
-    image.putalpha(128)
-    overlaid_image = Image.alpha_composite(tile_image, image)
-    buffer = BytesIO()
-    overlaid_image.save(buffer, format='PNG')
-    overlaid_image_file = InMemoryUploadedFile(buffer, None, f"tile_{tile.index}.png", 'image/png', buffer.getbuffer().nbytes, None)
-    tile.image = overlaid_image_file
+    try:
+        logging.info("Overlaying provided image")
+        tile_image = Image.open(tile.image).convert("RGBA")
+        image.putalpha(128)
+        overlaid_image = Image.alpha_composite(tile_image, image)
+        buffer = BytesIO()
+        overlaid_image.save(buffer, format='PNG')
+        overlaid_image_file = InMemoryUploadedFile(buffer, None, f"tile_{tile.index}.png", 'image/png', buffer.getbuffer().nbytes, None)
+        tile.image = overlaid_image_file
+    except Exception as e:
+        logging.exception("Failed to overlay image")
+        logging.exception(e)
+        raise ImageManipulationException()
 
     logging.info("Saving tile updates to database")
     tile.save()

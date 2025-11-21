@@ -1,3 +1,4 @@
+import logging
 from typing import List
 
 import resend
@@ -19,4 +20,6 @@ def send_email(api_key: str, image: Image, email_addresses: List[str]):
     # }
     #
     # resend.api_key = api_key
+    #
+    # logging.info("Sending email")
     # resend.Emails.send(params)
