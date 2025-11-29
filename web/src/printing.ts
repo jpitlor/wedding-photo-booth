@@ -91,23 +91,20 @@ export class Printing extends LitElement {
             <h2 slot="header">I love it!</h2>
             <form @submit=${this.handleSubmit}>
               <input name="image" .value=${this.image} />
-              <wa-switch checked disabled>Send to Cassie and Jordan</wa-switch>
-              <br />
-              <wa-switch name="email_to_me" @change=${this.handleSendToMeUpdate}>
-                Email to me
-              </wa-switch>
-              <wa-input
-                name="email"
-                label="My Email"
-                type="email"
-                class=${this.emailToMe ? "" : "invisible"}
-              ></wa-input>
-              <br />
-              <wa-switch name="print">Print as a sticker</wa-switch>
-              <br />
-              <wa-switch name="print_in_mosaic">Print as a tile in the mosaic</wa-switch>
-              <br />
-              <br />
+              <div class="form-content">
+                <wa-switch checked disabled>Send to Cassie and Jordan</wa-switch>
+                <wa-switch name="email_to_me" @change=${this.handleSendToMeUpdate}>
+                  Email to me
+                </wa-switch>
+                <wa-switch name="print">Print as a sticker</wa-switch>
+                <wa-switch name="print_in_mosaic">Print as a tile in the mosaic</wa-switch>
+                <wa-input
+                  name="email"
+                  label="My Email"
+                  type="email"
+                  class=${this.emailToMe ? "" : "invisible"}
+                ></wa-input>
+              </div>
               <wa-button type="submit" variant="brand">
                 Print and/or send
               </wa-button>
@@ -173,10 +170,11 @@ export class Printing extends LitElement {
       padding: 0;
     }
 
-    .columns {
-      display: flex;
-      flex-direction: row;
+    .form-content {
+      display: grid;
       gap: 1rem;
+      margin-bottom: 2rem;
+      grid-template-columns: repeat(2, 1fr);
     }
   `;
 }

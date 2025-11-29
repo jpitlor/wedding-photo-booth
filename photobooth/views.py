@@ -12,7 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 from photobooth.apps import PhotoboothConfig
 from photobooth.email import email
 from photobooth.forms import PrintImageForm
-from photobooth.models import BigImage, MosaicTile
+from photobooth.models import BigImage, MosaicTile, FormSubmission
 from photobooth.mosaic import image_manipulation
 from photobooth.mosaic.exceptions import MosaicFullException
 from photobooth.printer import printer
@@ -29,6 +29,16 @@ def print_image(request):
     form = PrintImageForm(request.POST)
     if not form.is_valid():
         return JsonResponse({"error": form.errors}, status=400)
+
+    # Save the form submission in case something happens that we need to reprint/resend everything
+    submission = FormSubmission(
+        image = form.cleaned_data["image"],
+        email_to_me = form.cleaned_data["email_to_me"],
+        email = form.cleaned_data["email"],
+        print = form.cleaned_data["print"],
+        print_in_mosaic = form.cleaned_data["print_in_mosaic"]
+    )
+    submission.save()
 
     config = cast(PhotoboothConfig, apps.get_app_config('photobooth'))
     image_base64 = form.cleaned_data["image"][len("data:image/png;base64,"):]

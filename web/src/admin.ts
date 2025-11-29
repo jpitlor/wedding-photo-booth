@@ -1,10 +1,12 @@
-import { LitElement, css, html } from "lit";
+import { LitElement, css, html, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import "@awesome.me/webawesome/dist/components/dialog/dialog.js";
 import "@awesome.me/webawesome/dist/components/button/button.js";
 import { map } from "lit/directives/map.js";
 import { range } from "lit/directives/range.js";
 import { api, appSlice, store } from "./store.ts";
+import type { Metadata } from "./types.ts";
+import { styleMap } from "lit/directives/style-map.js";
 
 @customElement("pba-admin")
 export class Admin extends LitElement {
@@ -12,13 +14,27 @@ export class Admin extends LitElement {
   tile: number | null = null;
 
   @state()
-  gridColumns = 10;
+  metadata: Metadata | undefined = undefined;
 
   @state()
-  gridRows = 15;
+  unsubscribe: (() => void) | null = null;
 
   @state()
   logs: string | undefined = undefined;
+
+  connectedCallback() {
+    super.connectedCallback();
+    const getMetadata = store.dispatch(api.endpoints.getMetadata.initiate());
+    getMetadata.then((result) => {
+      this.metadata = result.data;
+    });
+    this.unsubscribe = getMetadata.unsubscribe;
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.unsubscribe?.();
+  }
 
   handleExitAdminMode(_: Event) {
     store.dispatch(appSlice.actions.setPage("landing-page"));
@@ -56,6 +72,10 @@ export class Admin extends LitElement {
   handleReprintTile() {}
 
   render() {
+    if (!this.metadata) {
+      return nothing;
+    }
+
     return html`
       <wa-dialog
         light-dismiss
@@ -63,7 +83,9 @@ export class Admin extends LitElement {
         .open=${this.tile != null}
         @wa-after-hide=${this.handleTileClose}
       >
-        <img src=${`/api/tile/${this.tile}`} alt="" />
+        ${this.tile != null
+          ? html`<img src=${`/api/tile/${this.tile}`} alt="" />`
+          : nothing}
         <wa-button slot="footer" @click=${this.handleReprintTile}>
           Reprint
         </wa-button>
@@ -105,9 +127,14 @@ export class Admin extends LitElement {
           </wa-button>
           <wa-button @click=${this.handleSeeLogs}>See Logs</wa-button>
         </div>
-        <div class="images">
+        <div
+          class="images"
+          style=${styleMap({
+            "grid-template-columns": `repeat(${this.metadata?.column_count}, 1fr)`,
+          })}
+        >
           ${map(
-            range(this.gridRows * this.gridColumns),
+            range(this.metadata.row_count * this.metadata.column_count),
             (i) =>
               html`<img
                 .src=${`/api/tile/${i}`}

@@ -50,13 +50,6 @@ export class TakingPhoto extends LitElement {
 
     const actualAspectRatio = computedWidth / computedHeight;
     const naturalAspectRatio = naturalWidth / naturalHeight;
-    console.log(
-      naturalWidth,
-      naturalHeight,
-      computedStyle,
-      computedWidth,
-      computedHeight,
-    );
 
     const width =
       actualAspectRatio > naturalAspectRatio
@@ -105,7 +98,6 @@ export class TakingPhoto extends LitElement {
     }
 
     const renderedSize = this._getRenderedVideoSize();
-    console.log(renderedSize);
     context.drawImage(
       this.video,
       renderedSize.left,
@@ -114,8 +106,8 @@ export class TakingPhoto extends LitElement {
       renderedSize.height,
       0,
       0,
-      this.metadata.tile_height,
       this.metadata.tile_width,
+      this.metadata.tile_height,
     );
     const image = this.canvas.toDataURL("image/png");
 
@@ -141,12 +133,12 @@ export class TakingPhoto extends LitElement {
         <div class="viewfinder">
           <video
             style=${styleMap({
-              aspectRatio: `${this.metadata?.tile_height} / ${this.metadata?.tile_width}`,
+              aspectRatio: `${this.metadata?.tile_width} / ${this.metadata?.tile_height}`,
             })}
           ></video>
           <canvas
-            width=${this.metadata?.tile_height}
-            height=${this.metadata?.tile_width}
+            width=${this.metadata?.tile_width}
+            height=${this.metadata?.tile_height}
           ></canvas>
         </div>
         <div class="actions" style=${`padding: ${this.interval ? 1.5 : 2}rem`}>

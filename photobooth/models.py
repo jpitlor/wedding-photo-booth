@@ -14,3 +14,10 @@ class MosaicTile(models.Model):
     index = models.IntegerField()
     image = models.ImageField()
     is_printed = models.BooleanField(default=False)
+
+class FormSubmission(models.Model):
+    image = models.CharField(max_length=999999)
+    email_to_me = models.BooleanField()
+    email = models.CharField(max_length=200)
+    print = models.BooleanField()
+    print_in_mosaic = models.BooleanField()
