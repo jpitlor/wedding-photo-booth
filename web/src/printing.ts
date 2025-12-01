@@ -54,7 +54,7 @@ export class Printing extends LitElement {
     this.formState = {
       state: result.error ? "error" : "finished",
       title: result.error ? "Something went wrong" : "Success",
-      message: result.data,
+      message: result.data?.message,
     };
     return false;
   }
@@ -67,14 +67,18 @@ export class Printing extends LitElement {
     this.emailToMe = this.emailToMeSwitch.checked;
   }
 
+  returnHome() {
+    store.dispatch(appSlice.actions.setPage("landing-page"));
+  }
+
   // I don't like using snake_case, but I don't feel like figuring out why
   // Django can't convert between snake and camel case.
   render() {
     return html`
       <wa-dialog
-        light-dismiss
         label=${this.formState.title} 
         .open=${this.formState.state === "finished" || this.formState.state === "error"}
+        @wa-after-hide=${this.returnHome}
       >
         ${this.formState.message}
       </wa-dialog>

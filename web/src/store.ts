@@ -46,6 +46,10 @@ interface GetLogsResponse {
   logs: string;
 }
 
+interface PrintResponse {
+  message: string;
+}
+
 export const api = createApi({
   reducerPath: "api",
   baseQuery: fetchBaseQuery({
@@ -55,7 +59,7 @@ export const api = createApi({
     getMetadata: builder.query<Metadata, void>({
       query: () => "/metadata",
     }),
-    print: builder.mutation<string, FormData>({
+    print: builder.mutation<PrintResponse, FormData>({
       query: (body) => ({
         url: "/print",
         method: "POST",
