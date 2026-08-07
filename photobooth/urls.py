@@ -8,4 +8,6 @@ urlpatterns = [
     path("metadata", views.get_big_image, name="get_big_image"),
     path("reset", views.reset, name="reset"),
     path("logs", views.get_logs, name="get_logs"),
+    path("reset-tile", views.reset_tile, name="reset_tile"),
+    path("reprint", views.reprint, name="reprint"),
 ]

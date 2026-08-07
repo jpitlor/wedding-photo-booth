@@ -4,5 +4,6 @@ class PrintImageForm(forms.Form):
     image = forms.CharField()
     email_to_me = forms.BooleanField(required=False, initial=False)
     email = forms.EmailField(required=False)
-    print = forms.BooleanField(required=False, initial=False)
-    print_in_mosaic = forms.BooleanField(required=False, initial=False)
+
+class AdminForm(forms.Form):
+    tile = forms.IntegerField(required=True)

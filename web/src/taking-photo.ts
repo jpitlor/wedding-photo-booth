@@ -184,6 +184,7 @@ export class TakingPhoto extends LitElement {
       align-items: center;
       justify-content: center;
       overflow: hidden;
+      position: relative;
     }
 
     canvas {

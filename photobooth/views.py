@@ -11,7 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from photobooth.apps import PhotoboothConfig
 from photobooth.email import email
-from photobooth.forms import PrintImageForm
+from photobooth.forms import PrintImageForm, AdminForm
 from photobooth.models import BigImage, MosaicTile, FormSubmission
 from photobooth.mosaic import image_manipulation
 from photobooth.mosaic.exceptions import MosaicFullException
@@ -34,9 +34,7 @@ def print_image(request):
     submission = FormSubmission(
         image = form.cleaned_data["image"],
         email_to_me = form.cleaned_data["email_to_me"],
-        email = form.cleaned_data["email"],
-        print = form.cleaned_data["print"],
-        print_in_mosaic = form.cleaned_data["print_in_mosaic"]
+        email = form.cleaned_data["email"]
     )
     submission.save()
 
@@ -51,17 +49,15 @@ def print_image(request):
         emails.append(form.cleaned_data["email"])
     email.send_email(config.resend_api_key, image, emails)
 
-    if form.cleaned_data["print"]:
-        printer.print_image(image, PrinterInstance.PERSONAL)
+    printer.print_image(image, PrinterInstance.PERSONAL)
 
-    if form.cleaned_data["print_in_mosaic"]:
-        try:
-            overlaid_image = image_manipulation.overlay_tile(image)
-            printer.print_image(overlaid_image, PrinterInstance.MOSAIC)
-        except MosaicFullException:
-            return JsonResponse({"message": "The mosaic is already full"}, status=500)
+    try:
+        tile_index, overlaid_image = image_manipulation.overlay_tile(image)
+        printer.print_image(overlaid_image, PrinterInstance.MOSAIC)
+    except MosaicFullException:
+        return JsonResponse({"message": "The mosaic is already full, but your personal copy is printing. Please be patient - it takes about a minute for the printers to finish printing."}, status=500)
 
-    return JsonResponse({"message": ""}, status=200)
+    return JsonResponse({"message": f"The images are printing. <strong>Put the mosaic copy on tile {tile_index}</strong>. Please be patient - it takes about a minute for the printers to finish printing."}, status=200)
 
 
 def get_tile(request, tile_number: int):
@@ -97,3 +93,32 @@ def reset(request):
 def get_logs(request):
     result = open("photobooth.log").read()
     return JsonResponse({"logs": result}, status=200)
+
+# Normally, CSRF protection is good, but this will never be deployed anywhere
+@csrf_exempt
+def reset_tile(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    form = AdminForm(request.POST)
+    if not form.is_valid():
+        return JsonResponse({"error": form.errors}, status=400)
+
+    config = cast(PhotoboothConfig, apps.get_app_config('photobooth'))
+    image_manipulation.reset_tile(config.big_picture_path, config.photo_printer_height, config.photo_printer_width, form.cleaned_data["tile"])
+    return HttpResponse(status=200)
+
+# Normally, CSRF protection is good, but this will never be deployed anywhere
+@csrf_exempt
+def reprint(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    form = AdminForm(request.POST)
+    if not form.is_valid():
+        return JsonResponse({"error": form.errors}, status=400)
+
+    tile = MosaicTile.objects.get(index=form.cleaned_data["tile"])
+    image = Image.open(tile.image)
+    printer.print_image(image, PrinterInstance.MOSAIC)
+    return HttpResponse(status=200)

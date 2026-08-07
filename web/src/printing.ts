@@ -1,5 +1,6 @@
 import { LitElement, css, html } from "lit";
 import { customElement, property, query, state } from "lit/decorators.js";
+import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import { api, appSlice, store } from "./store.ts";
 
 import "@awesome.me/webawesome/dist/components/switch/switch.js";
@@ -11,7 +12,6 @@ import type WaSwitch from "@awesome.me/webawesome/dist/components/switch/switch.
 
 interface FormState {
   state: "open" | "loading" | "error" | "finished";
-  title?: string;
   message?: string;
 }
 
@@ -53,10 +53,14 @@ export class Printing extends LitElement {
     const result = await store.dispatch(api.endpoints.print.initiate(body));
     this.formState = {
       state: result.error ? "error" : "finished",
-      title: result.error ? "Something went wrong" : "Success",
-      message: result.data,
+      message: (result.data as any).message,
     };
+    setTimeout(this.resetToBeginning, 60_000);
     return false;
+  }
+
+  resetToBeginning() {
+    store.dispatch(appSlice.actions.setPage("landing-page"));
   }
 
   handleCancel() {
@@ -72,11 +76,10 @@ export class Printing extends LitElement {
   render() {
     return html`
       <wa-dialog
-        light-dismiss
-        label=${this.formState.title} 
+        without-header
         .open=${this.formState.state === "finished" || this.formState.state === "error"}
       >
-        ${this.formState.message}
+        ${unsafeHTML(this.formState.message)}
       </wa-dialog>
       <div class="container">
         <img src=${this.image} alt="" />
@@ -92,12 +95,9 @@ export class Printing extends LitElement {
             <form @submit=${this.handleSubmit}>
               <input name="image" .value=${this.image} />
               <div class="form-content">
-                <wa-switch checked disabled>Send to Cassie and Jordan</wa-switch>
-                <wa-switch name="email_to_me" @change=${this.handleSendToMeUpdate}>
+                <wa-switch name="email_to_me" hint="This is optional. You will still get a printed copy" @change=${this.handleSendToMeUpdate}>
                   Email to me
                 </wa-switch>
-                <wa-switch name="print">Print as a sticker</wa-switch>
-                <wa-switch name="print_in_mosaic">Print as a tile in the mosaic</wa-switch>
                 <wa-input
                   name="email"
                   label="My Email"
@@ -171,10 +171,10 @@ export class Printing extends LitElement {
     }
 
     .form-content {
-      display: grid;
+      display: flex;
+      flex-direction: column;
       gap: 1rem;
       margin-bottom: 2rem;
-      grid-template-columns: repeat(2, 1fr);
     }
   `;
 }

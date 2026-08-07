@@ -71,6 +71,28 @@ export const api = createApi({
     getLogs: builder.query<GetLogsResponse, void>({
       query: () => "/logs",
     }),
+    resetTile: builder.mutation<void, number>({
+      query: (tile) => {
+        const body = new FormData();
+        body.append("tile", tile.toString());
+        return {
+          url: "/reset-tile",
+          method: "POST",
+          body,
+        };
+      },
+    }),
+    reprintTile: builder.mutation<void, number>({
+      query: (tile) => {
+        const body = new FormData();
+        body.append("tile", tile.toString());
+        return {
+          url: "/reprint",
+          method: "POST",
+          body,
+        };
+      },
+    }),
   }),
 });
 
