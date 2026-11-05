@@ -67,7 +67,7 @@ def init_mosaic(big_image_path: str, tile_width: int, tile_height: int):
     logging.info("Finished initializing mosaic models")
 
 
-def overlay_tile(image: Image.Image) -> Image.Image:
+def overlay_tile(image: Image.Image) -> Tuple[int, Image.Image]:
     # First, we need to find a random image that hasn't been printed
     logging.info("Finding not-printed tiles")
     tiles = MosaicTile.objects.filter(is_printed=False)
@@ -75,7 +75,8 @@ def overlay_tile(image: Image.Image) -> Image.Image:
         raise MosaicFullException()
 
     logging.debug("Picking random tile")
-    tile = tiles[randint(0, len(tiles) - 1)]
+    tile_index = randint(0, len(tiles) - 1)
+    tile = tiles[tile_index]
 
     # Update it so it isn't picked next time
     tile.is_printed = True
@@ -97,7 +98,7 @@ def overlay_tile(image: Image.Image) -> Image.Image:
 
     logging.info("Saving tile updates to database")
     tile.save()
-    return overlaid_image
+    return tile_index, overlaid_image
 
 
 def get_tile(tile_number: int, default_size: Tuple[int, int]) -> Image.Image:
@@ -115,3 +116,36 @@ def get_tile(tile_number: int, default_size: Tuple[int, int]) -> Image.Image:
                   align="center",
                   font_size=128)
         return image
+
+def reset_tile(big_image_path: str, tile_width: int, tile_height: int, tile_number: int):
+    logging.info("Finding tile")
+    tile = MosaicTile.objects.get(index=tile_number)
+
+    # Update it so it is picked next time
+    logging.info("Resetting is printed flag")
+    tile.is_printed = False
+
+    # Reset the image
+    try:
+        logging.info("Resetting image")
+        big_image = Image.open(big_image_path)
+        tiles_per_row = big_image.width // tile_width
+        x = tile_number % tiles_per_row
+        y = tile_number // tiles_per_row
+        cropped_image = big_image.crop((x * tile_width, y * tile_height, (x + 1) * tile_width, (y + 1) * tile_height))
+        buffer = BytesIO()
+        cropped_image.save(buffer, format='PNG')
+        tile.image = InMemoryUploadedFile(buffer,
+                                         None,
+                                         f"tile_{tile_number}.png",
+                                         'image/png',
+                                         buffer.getbuffer().nbytes,
+                                         None)
+    except Exception as e:
+        logging.exception("Failed to crop image")
+        logging.exception(e)
+        raise ImageManipulationException()
+
+    logging.info("Saving tile updates to database")
+    tile.save()
+    pass

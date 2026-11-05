@@ -67,9 +67,21 @@ export class Admin extends LitElement {
     this.logs = undefined;
   }
 
-  handleResetTile() {}
+  async handleResetTile() {
+    if (!this.tile) {
+      return;
+    }
 
-  handleReprintTile() {}
+    await store.dispatch(api.endpoints.resetTile.initiate(this.tile));
+  }
+
+  async handleReprintTile() {
+    if (!this.tile) {
+      return;
+    }
+
+    await store.dispatch(api.endpoints.reprintTile.initiate(this.tile));
+  }
 
   render() {
     if (!this.metadata) {

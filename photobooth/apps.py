@@ -7,7 +7,6 @@ class PhotoboothConfig(AppConfig):
     name = 'photobooth'
 
     big_picture_path = ""
-    small_picture_folder_path = ""
     photo_printer_width = 0
     photo_printer_height = 0
     resend_api_key = ""
