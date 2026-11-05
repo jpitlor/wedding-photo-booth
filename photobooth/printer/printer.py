@@ -29,3 +29,8 @@ def print_image(image: Image, instance: PrinterInstance):
     elif instance == PrinterInstance.PERSONAL:
         logging.info("Printing to personal printer")
         personal_printer.print(image.tobytes())
+
+
+def check_print_worthiness():
+    mosaic_printer.check_print_worthiness()
+    personal_printer.check_print_worthiness()

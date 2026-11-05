@@ -16,9 +16,17 @@ from photobooth.models import BigImage, MosaicTile, FormSubmission
 from photobooth.mosaic import image_manipulation
 from photobooth.mosaic.exceptions import MosaicFullException
 from photobooth.printer import printer
+from photobooth.printer.exceptions import NoPaperError
 from photobooth.printer.printer import PrinterInstance
 
 JORDAN_CASSIE_EMAIL = "jandc@pitlor.dev"
+
+def check_print_worthiness(request):
+    try:
+        printer.check_print_worthiness()
+        return JsonResponse({"message": ""}, status=200)
+    except NoPaperError:
+        return JsonResponse({"message": ""}, status=500)
 
 # Normally, CSRF protection is good, but this will never be deployed anywhere
 @csrf_exempt

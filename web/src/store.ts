@@ -59,6 +59,9 @@ export const api = createApi({
     getMetadata: builder.query<Metadata, void>({
       query: () => "/metadata",
     }),
+    checkPrintWorthiness: builder.query<void, void>({
+      query: () => "/print-worthiness"
+    }),
     print: builder.mutation<PrintResponse, FormData>({
       query: (body) => ({
         url: "/print",

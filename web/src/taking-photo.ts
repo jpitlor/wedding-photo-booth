@@ -3,6 +3,7 @@ import { css, html, LitElement } from "lit";
 import "@awesome.me/webawesome/dist/components/button/button.js";
 import "@awesome.me/webawesome/dist/components/callout/callout.js";
 import "@awesome.me/webawesome/dist/components/icon/icon.js";
+import "@awesome.me/webawesome/dist/components/dialog/dialog.js";
 import { styleMap } from "lit/directives/style-map.js";
 import type { Metadata } from "./types.ts";
 import { api, appSlice, store } from "./store.ts";
@@ -36,6 +37,9 @@ export class TakingPhoto extends LitElement {
 
   @state()
   secondsLeft = 5;
+
+  @state()
+  printerError = false;
 
   _getRenderedVideoSize(): Size {
     const naturalWidth = this.video.videoWidth;
@@ -84,6 +88,17 @@ export class TakingPhoto extends LitElement {
       this.metadata = result.data;
     });
     this.subscription = getMetadata.unsubscribe;
+
+    this.checkPrintWorthiness();
+  }
+
+  async checkPrintWorthiness() {
+    const result = await store.dispatch(api.endpoints.checkPrintWorthiness.initiate());
+    this.printerError = !result.isSuccess;
+  }
+
+  preventClose(e: Event) {
+    e.preventDefault();
   }
 
   disconnectedCallback() {
@@ -129,6 +144,21 @@ export class TakingPhoto extends LitElement {
 
   render() {
     return html`
+      <wa-dialog
+          label="Printer Out of Paper"
+          .open=${this.printerError}
+          @wa-hide=${this.preventClose}
+      >
+        One of the printers is out of paper. To refill:
+        <ol>
+          <li>Push down on the top and slide in the direction of the arrow</li>
+          <li>Put 10 more sheets inside, white side up</li>
+          <li>Put the top back on, sliding the opposite direction of step 1</li>
+        </ol>
+        <wa-button slot="footer" variant="brand" @click=${this.checkPrintWorthiness}>
+          Retry
+        </wa-button>
+      </wa-dialog>
       <div class="container">
         <div class="viewfinder">
           <video
