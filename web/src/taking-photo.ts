@@ -35,7 +35,7 @@ export class TakingPhoto extends LitElement {
   interval: number | null = null;
 
   @state()
-  secondsLeft = 1; // TODO: For testing. Change back to 10.
+  secondsLeft = 5;
 
   _getRenderedVideoSize(): Size {
     const naturalWidth = this.video.videoWidth;
