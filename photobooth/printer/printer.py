@@ -26,7 +26,9 @@ PRINTERS = {
     PrinterInstance.PERSONAL: (personal_printer, personal_printer_mac_address),
 }
 
-PING_INTERVAL_SECONDS = 1
+# The printer's shortest auto power off is 3 minutes, so this is plenty to keep
+# it awake while keeping traffic (and collisions with prints) to a minimum
+PING_INTERVAL_SECONDS = 15
 
 stop_event = Event()
 
@@ -34,12 +36,14 @@ stop_event = Event()
 def periodic_ping():
     """Keeps the bluetooth connections alive, reconnecting if they drop.
 
-    Runs for the life of the process. A printer that is currently busy
-    (e.g. printing) is skipped rather than pausing the whole thread.
+    Runs for the life of the process. A printer that is currently printing
+    is skipped rather than pausing the whole thread.
     """
     while not stop_event.wait(PING_INTERVAL_SECONDS):
         for instance, (printer, mac_address) in PRINTERS.items():
-            if not printer.lock.acquire(blocking=False):
+            # Skip printers that are receiving a print (locked) or physically
+            # printing (busy) - they don't answer status requests while printing
+            if printer.is_busy() or not printer.lock.acquire(blocking=False):
                 continue
 
             try:
@@ -52,6 +56,8 @@ def periodic_ping():
                     printer.connect(mac_address)
             except Exception:
                 logging.exception("Ping failed for %s printer", instance.name)
+            except BaseException:
+                logging.exception("Ping failed for %s printer (Custom Exception)", instance.name)
             finally:
                 printer.lock.release()
 

@@ -27,6 +27,10 @@ from .utils import parse_incoming_message
 PRINT_BATTERY_MIN = 30
 PRINT_DATA_CHUNK = 990
 
+# How long the printer is physically printing after the data transfer completes.
+# The printer doesn't answer status requests during this time.
+PHYSICAL_PRINT_SECONDS = 90
+
 
 class Ivy2Printer:
     def __init__(self):
@@ -34,6 +38,8 @@ class Ivy2Printer:
         # Held for the duration of any exchange with the printer so that
         # keep-alive pings, status checks, and prints don't interleave
         self.lock = threading.Lock()
+        # time.monotonic() value until which the printer is physically printing
+        self.busy_until = 0.0
 
     def connect(self, mac_address, port=1):
         if self.client is not None:
@@ -53,6 +59,10 @@ class Ivy2Printer:
     def is_connected(self):
         return self.client is not None and self.client.alive.is_set()
 
+    def is_busy(self):
+        """Whether the printer is likely still physically printing."""
+        return time.monotonic() < self.busy_until
+
     def print(self, target: bytes, transfer_timeout=60):
         image_length = len(target)
 
@@ -62,25 +72,33 @@ class Ivy2Printer:
         # setup the printer to receive the image data
         self.get_print_ready(image_length)
 
-        # split up the image and add to the client queue
-        start_index = 0
-        while True:
-            end_index = min(start_index + PRINT_DATA_CHUNK, image_length)
-            image_chunk = target[start_index:end_index]
+        # make sure the only response we wait for below is the transfer-complete one
+        self.__drain_inbound()
 
-            self.client.outbound_q.put(image_chunk)
+        try:
+            # split up the image and add to the client queue
+            start_index = 0
+            while True:
+                end_index = min(start_index + PRINT_DATA_CHUNK, image_length)
+                image_chunk = target[start_index:end_index]
 
-            if end_index >= image_length:
-                break
+                self.client.outbound_q.put(image_chunk)
 
-            start_index = end_index
+                if end_index >= image_length:
+                    break
 
-        logger.debug("Beginning data transfer...")
+                start_index = end_index
 
-        # wait longer than usual since the transfer takes some time
-        self.__receive_message(transfer_timeout)
+            logger.debug("Beginning data transfer...")
 
-        logger.debug("Data transfer complete! Printing should begin in a moment")
+            # wait longer than usual since the transfer takes some time
+            self.__receive_message(transfer_timeout)
+
+            logger.debug("Data transfer complete! Printing should begin in a moment")
+        finally:
+            # Once data has been sent the printer may be printing even if we
+            # didn't get the transfer-complete response, so leave it alone
+            self.busy_until = time.monotonic() + PHYSICAL_PRINT_SECONDS
 
     def reboot(self):
         return self.__perform_task(RebootTask())
@@ -128,6 +146,10 @@ class Ivy2Printer:
         return self.__perform_task(StartSessionTask())
 
     def __perform_task(self, task):
+        # discard any late responses to earlier requests (e.g. ones that timed
+        # out) so they aren't mistaken for the response to this one
+        self.__drain_inbound()
+
         # send the task's message
         self.__send_message(task.get_message())
         response = self.__receive_message()
@@ -139,6 +161,18 @@ class Ivy2Printer:
 
         # process and return the response
         return task.process_response(response)
+
+    def __drain_inbound(self):
+        if self.client is None:
+            return
+
+        while True:
+            try:
+                stale = self.client.inbound_q.get_nowait()
+            except queue.Empty:
+                return
+
+            logger.warning("Discarding stale message from printer: {}", stale)
 
     def __send_message(self, message):
         if not self.is_connected():
