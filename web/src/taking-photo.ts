@@ -98,7 +98,9 @@ export class TakingPhoto extends LitElement {
   }
 
   preventClose(e: Event) {
-    e.preventDefault();
+    if (this.printerError) {
+      e.preventDefault();
+    }
   }
 
   disconnectedCallback() {
