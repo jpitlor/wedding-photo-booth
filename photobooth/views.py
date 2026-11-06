@@ -2,6 +2,7 @@ import base64
 import io
 from io import BytesIO
 from typing import cast
+from threading import Thread
 
 from PIL import Image
 from django.apps import apps
@@ -57,15 +58,28 @@ def print_image(request):
         emails.append(form.cleaned_data["email"])
     email.send_email(config.resend_api_key, image, emails)
 
-    printer.print_image(image, PrinterInstance.PERSONAL)
-
+    tile_index = -1
     try:
         tile_index, overlaid_image = image_manipulation.overlay_tile(image)
-        printer.print_image(overlaid_image, PrinterInstance.MOSAIC)
     except MosaicFullException:
-        return JsonResponse({"message": "The mosaic is already full, but your personal copy is printing. Please be patient - it takes about a minute for the printers to finish printing."}, status=500)
+        pass
 
-    return JsonResponse({"message": f"The images are printing. <strong>Put the mosaic copy on tile {tile_index}</strong>. Please be patient - it takes about a minute for the printers to finish printing."}, status=200)
+    def print_personal_copy():
+        printer.print_image(image, PrinterInstance.PERSONAL)
+
+    def print_moasic_copy():
+        printer.print_image(overlaid_image, PrinterInstance.MOSAIC)
+
+
+    t1 = Thread(target=print_personal_copy)
+    t1.start()
+
+    if tile_index == -1:
+        return JsonResponse({"message": "The mosaic is already full, but your personal copy is printing. Please be patient - it takes about a minute for the printers to finish printing."}, status=500)
+    else:
+        t2 = Thread(target=print_moasic_copy)
+        t2.start()
+        return JsonResponse({"message": f"The images are printing. <strong>Put the mosaic copy on tile {tile_index}</strong>. Please be patient - it takes about a minute for the printers to finish printing."}, status=200)
 
 
 def get_tile(request, tile_number: int):
