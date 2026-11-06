@@ -56,7 +56,7 @@ def print_image(request):
     emails = [JORDAN_CASSIE_EMAIL]
     if form.cleaned_data["email_to_me"]:
         emails.append(form.cleaned_data["email"])
-    email.send_email(config.resend_api_key, image, emails)
+    email.send_email_in_background(config.resend_api_key, image, emails)
 
     tile_index = -1
     try:
