@@ -1,8 +1,10 @@
 import logging
+import time
 from enum import Enum
 
 from PIL.Image import Image, Resampling, new as NewImage
 from io import BytesIO
+from threading import Thread
 
 from photobooth.printer.ivy2 import Ivy2Printer
 
@@ -20,12 +22,33 @@ class PrinterInstance(Enum):
     MOSAIC = 1,
     PERSONAL = 2
 
+should_ping = True
+
+def periodic_ping():
+    global should_ping
+    while should_ping:
+        time.sleep(1)
+
+        if mosaic_printer.is_connected():
+            mosaic_printer.check_print_worthiness()
+        else:
+            mosaic_printer.connect(mosaic_printer_mac_address)
+
+        if personal_printer.is_connected():
+            personal_printer.check_print_worthiness()
+        else:
+            personal_printer.connect(personal_printer_mac_address)
+
+
+periodic_check_thread = Thread(target=periodic_ping)
+
 
 def init_printer():
     logging.info("Connecting to mosaic printer")
     mosaic_printer.connect(mosaic_printer_mac_address)
     logging.info("Connecting to personal printer")
     personal_printer.connect(personal_printer_mac_address)
+    periodic_check_thread.start()
 
 
 def prepare_image(image: Image):
@@ -58,12 +81,18 @@ def prepare_image(image: Image):
         return out_stream.getvalue()
 
 def print_image(image: Image, instance: PrinterInstance):
+    global should_ping
+    should_ping = False
+    periodic_check_thread.join()
     if instance == PrinterInstance.MOSAIC:
         logging.info("Printing to mosaic printer")
         mosaic_printer.print(prepare_image(image))
     elif instance == PrinterInstance.PERSONAL:
         logging.info("Printing to personal printer")
         personal_printer.print(prepare_image(image))
+
+    should_ping = True
+    periodic_check_thread.start()
 
 
 def check_print_worthiness():
