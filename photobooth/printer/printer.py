@@ -1,7 +1,7 @@
 import logging
 from enum import Enum
 
-from PIL.Image import Image
+from PIL.Image import Image, Resampling, new as NewImage
 from io import BytesIO
 
 from photobooth.printer.ivy2 import Ivy2Printer
@@ -37,7 +37,7 @@ def prepare_image(image: Image):
 
     if scaled_width != width or scaled_height != height:
         image = image.resize(
-            (scaled_width, scaled_height), Image.Resampling.LANCZOS
+            (scaled_width, scaled_height), Resampling.LANCZOS
         )
 
     offset = (
@@ -45,12 +45,12 @@ def prepare_image(image: Image):
         (PRINT_START_HEIGHT - scaled_height) // 2
     )
 
-    out_image = Image.new("RGB", (PRINT_START_WIDTH, PRINT_START_HEIGHT))
+    out_image = NewImage("RGB", (PRINT_START_WIDTH, PRINT_START_HEIGHT))
     out_image.paste(image, offset)
 
     out_image = out_image.resize(
         (PRINT_FINAL_WIDTH, PRINT_FINAL_HEIGHT),
-        Image.Resampling.LANCZOS
+        Resampling.LANCZOS
     )
 
     with BytesIO() as out_stream:
