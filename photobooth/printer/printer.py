@@ -1,10 +1,9 @@
 import logging
-import time
 from enum import Enum
 
 from PIL.Image import Image, Resampling, new as NewImage
 from io import BytesIO
-from threading import Thread
+from threading import Event, Thread
 
 from photobooth.printer.ivy2 import Ivy2Printer
 
@@ -22,33 +21,56 @@ class PrinterInstance(Enum):
     MOSAIC = 1,
     PERSONAL = 2
 
-should_ping = True
+PRINTERS = {
+    PrinterInstance.MOSAIC: (mosaic_printer, mosaic_printer_mac_address),
+    PrinterInstance.PERSONAL: (personal_printer, personal_printer_mac_address),
+}
+
+PING_INTERVAL_SECONDS = 1
+
+stop_event = Event()
+
 
 def periodic_ping():
-    global should_ping
-    while should_ping:
-        time.sleep(1)
+    """Keeps the bluetooth connections alive, reconnecting if they drop.
 
-        if mosaic_printer.is_connected():
-            mosaic_printer.check_print_worthiness()
-        else:
-            mosaic_printer.connect(mosaic_printer_mac_address)
+    Runs for the life of the process. A printer that is currently busy
+    (e.g. printing) is skipped rather than pausing the whole thread.
+    """
+    while not stop_event.wait(PING_INTERVAL_SECONDS):
+        for instance, (printer, mac_address) in PRINTERS.items():
+            if not printer.lock.acquire(blocking=False):
+                continue
 
-        if personal_printer.is_connected():
-            personal_printer.check_print_worthiness()
-        else:
-            personal_printer.connect(personal_printer_mac_address)
+            try:
+                if printer.is_connected():
+                    # get_status rather than check_print_worthiness so that
+                    # e.g. running out of paper isn't treated as a failure
+                    printer.get_status()
+                else:
+                    logging.info("Reconnecting to %s printer", instance.name)
+                    printer.connect(mac_address)
+            except Exception:
+                logging.exception("Ping failed for %s printer", instance.name)
+            finally:
+                printer.lock.release()
 
 
-periodic_check_thread = Thread(target=periodic_ping)
+periodic_check_thread = Thread(target=periodic_ping, daemon=True)
 
 
 def init_printer():
-    logging.info("Connecting to mosaic printer")
-    mosaic_printer.connect(mosaic_printer_mac_address)
-    logging.info("Connecting to personal printer")
-    personal_printer.connect(personal_printer_mac_address)
-    periodic_check_thread.start()
+    for instance, (printer, mac_address) in PRINTERS.items():
+        logging.info("Connecting to %s printer", instance.name)
+        try:
+            with printer.lock:
+                printer.connect(mac_address)
+        except Exception:
+            # Not fatal - the ping thread will keep retrying
+            logging.exception("Failed to connect to %s printer", instance.name)
+
+    if not periodic_check_thread.is_alive():
+        periodic_check_thread.start()
 
 
 def prepare_image(image: Image):
@@ -81,20 +103,15 @@ def prepare_image(image: Image):
         return out_stream.getvalue()
 
 def print_image(image: Image, instance: PrinterInstance):
-    global should_ping
-    should_ping = False
-    periodic_check_thread.join()
-    if instance == PrinterInstance.MOSAIC:
-        logging.info("Printing to mosaic printer")
-        mosaic_printer.print(prepare_image(image))
-    elif instance == PrinterInstance.PERSONAL:
-        logging.info("Printing to personal printer")
-        personal_printer.print(prepare_image(image))
+    printer, _ = PRINTERS[instance]
+    data = prepare_image(image)
 
-    should_ping = True
-    periodic_check_thread.start()
+    with printer.lock:
+        logging.info("Printing to %s printer", instance.name)
+        printer.print(data)
 
 
 def check_print_worthiness():
-    mosaic_printer.check_print_worthiness()
-    personal_printer.check_print_worthiness()
+    for printer, _ in PRINTERS.values():
+        with printer.lock:
+            printer.check_print_worthiness()

@@ -24,5 +24,5 @@ class PhotoboothConfig(AppConfig):
             # The photos will be in landscape mode, so they will appear sideways on the printed sticker
             init_mosaic(self.big_picture_path, self.photo_printer_height, self.photo_printer_width)
             init_printer()
-        except:
-            pass
+        except Exception:
+            logging.exception("Failed to initialize mosaic/printers")

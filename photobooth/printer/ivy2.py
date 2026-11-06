@@ -1,5 +1,6 @@
 import time
 import queue
+import threading
 from loguru import logger
 
 from .task import (
@@ -28,19 +29,29 @@ PRINT_DATA_CHUNK = 990
 
 
 class Ivy2Printer:
-    client = ClientThread()
+    def __init__(self):
+        self.client = None
+        # Held for the duration of any exchange with the printer so that
+        # keep-alive pings, status checks, and prints don't interleave
+        self.lock = threading.Lock()
 
     def connect(self, mac_address, port=1):
+        if self.client is not None:
+            self.client.disconnect()
+
+        # Threads can only be started once, so every (re)connect needs a new client
+        self.client = ClientThread()
         self.client.connect(mac_address, port)
         battery_level, mtu = self.__start_session()
 
         logger.debug("Connected; Battery level: {}; MTU: {}".format(battery_level, mtu))
 
     def disconnect(self):
-        self.client.disconnect()
+        if self.client is not None:
+            self.client.disconnect()
 
     def is_connected(self):
-        return self.client.alive.is_set()
+        return self.client is not None and self.client.alive.is_set()
 
     def print(self, target: bytes, transfer_timeout=60):
         image_length = len(target)
@@ -130,7 +141,7 @@ class Ivy2Printer:
         return task.process_response(response)
 
     def __send_message(self, message):
-        if not self.client.alive.is_set():
+        if not self.is_connected():
             raise ClientUnavailableError()
 
         # add the message to the client thread's outbound queue
@@ -139,7 +150,7 @@ class Ivy2Printer:
     def __receive_message(self, timeout=5):
         start = int(time.time())
         while int(time.time()) < (start + timeout):
-            if not self.client.alive.is_set():
+            if not self.is_connected():
                 raise ClientUnavailableError("")
 
             try:
