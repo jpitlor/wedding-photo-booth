@@ -98,7 +98,7 @@ def overlay_tile(image: Image.Image) -> Tuple[int, Image.Image]:
 
     logging.info("Saving tile updates to database")
     tile.save()
-    return tile_index, overlaid_image
+    return tile.index, overlaid_image
 
 
 def get_tile(tile_number: int, default_size: Tuple[int, int]) -> Image.Image:
