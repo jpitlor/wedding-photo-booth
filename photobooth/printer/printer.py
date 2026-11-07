@@ -105,7 +105,7 @@ def prepare_image(image: Image):
     )
 
     with BytesIO() as out_stream:
-        out_image.save(out_stream, format="JPEG", quality=100)
+        out_image.save(out_stream, format="JPEG", quality=90)
         return out_stream.getvalue()
 
 def print_image(image: Image, instance: PrinterInstance):
