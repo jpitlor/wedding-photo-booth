@@ -1,7 +1,7 @@
 import logging
 from enum import Enum
 
-from PIL.Image import Image, Resampling, new as NewImage
+from PIL.Image import Image, Resampling, Transpose, new as NewImage
 from io import BytesIO
 from threading import Event, Thread
 
@@ -12,10 +12,15 @@ mosaic_printer = Ivy2Printer()
 personal_printer_mac_address = "60:6E:41:46:34:60"
 personal_printer = Ivy2Printer()
 
+# Photos are composed in landscape...
 PRINT_START_WIDTH = 1920
 PRINT_START_HEIGHT = 1280
 PRINT_FINAL_WIDTH = 1616
 PRINT_FINAL_HEIGHT = 640
+# ...but the printer expects a 640x1616 portrait image (see dtgreene/ivy2's
+# image.py), so the final image is rotated before sending. If prints come out
+# upside down, change this to Transpose.ROTATE_90.
+PRINT_ROTATION = Transpose.ROTATE_270
 
 class PrinterInstance(Enum):
     MOSAIC = 1,
@@ -82,27 +87,17 @@ def init_printer():
 def prepare_image(image: Image):
     width, height = image.size
 
-    scale_factor = max(PRINT_START_WIDTH / width, PRINT_START_HEIGHT / height)
-    scaled_width = int(width * scale_factor)
-    scaled_height = int(height * scale_factor)
-
-    if scaled_width != width or scaled_height != height:
-        image = image.resize(
-            (scaled_width, scaled_height), Resampling.LANCZOS
-        )
-
-    offset = (
-        (PRINT_START_WIDTH - scaled_width) // 2,
-        (PRINT_START_HEIGHT - scaled_height) // 2
-    )
-
-    out_image = NewImage("RGB", (PRINT_START_WIDTH, PRINT_START_HEIGHT))
-    out_image.paste(image, offset)
+    out_image = NewImage("RGB", (width, height))
+    out_image.paste(image)
 
     out_image = out_image.resize(
         (PRINT_FINAL_WIDTH, PRINT_FINAL_HEIGHT),
         Resampling.LANCZOS
     )
+
+    # Landscape 1616x640 -> portrait 640x1616. This is equivalent to the
+    # original library's 90 degree rotation followed by its 180 degree rotation.
+    out_image = out_image.transpose(PRINT_ROTATION)
 
     with BytesIO() as out_stream:
         out_image.save(out_stream, format="JPEG", quality=90)

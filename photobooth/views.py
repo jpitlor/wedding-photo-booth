@@ -79,7 +79,7 @@ def print_image(request):
     else:
         t2 = Thread(target=print_moasic_copy)
         t2.start()
-        return JsonResponse({"message": f"The images are printing. <strong>Put the mosaic copy on tile {tile_index}</strong>. Please be patient - it takes about a minute for the printers to finish printing."}, status=200)
+        return JsonResponse({"message": f"The images are printing. <strong>Put the mosaic copy on tile {tile_index + 1}</strong>. Please be patient - it takes about a minute for the printers to finish printing."}, status=200)
 
 
 def get_tile(request, tile_number: int):
