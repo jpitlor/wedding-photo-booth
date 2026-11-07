@@ -72,9 +72,6 @@ class Ivy2Printer:
         # setup the printer to receive the image data
         self.get_print_ready(image_length)
 
-        # make sure the only response we wait for below is the transfer-complete one
-        self.__drain_inbound()
-
         try:
             # split up the image and add to the client queue
             start_index = 0
@@ -146,10 +143,6 @@ class Ivy2Printer:
         return self.__perform_task(StartSessionTask())
 
     def __perform_task(self, task):
-        # discard any late responses to earlier requests (e.g. ones that timed
-        # out) so they aren't mistaken for the response to this one
-        self.__drain_inbound()
-
         # send the task's message
         self.__send_message(task.get_message())
         response = self.__receive_message()
@@ -161,18 +154,6 @@ class Ivy2Printer:
 
         # process and return the response
         return task.process_response(response)
-
-    def __drain_inbound(self):
-        if self.client is None:
-            return
-
-        while True:
-            try:
-                stale = self.client.inbound_q.get_nowait()
-            except queue.Empty:
-                return
-
-            logger.warning("Discarding stale message from printer: {}", stale)
 
     def __send_message(self, message):
         if not self.is_connected():
