@@ -24,10 +24,18 @@ JORDAN_CASSIE_EMAIL = "jandc@pitlor.dev"
 
 def check_print_worthiness(request):
     try:
-        printer.check_print_worthiness()
-        return JsonResponse({"message": ""}, status=200)
+        printer.check_print_worthiness(PrinterInstance.MOSAIC)
+        mosaic_is_okay = True
     except NoPaperError:
-        return JsonResponse({"message": ""}, status=500)
+        mosaic_is_okay = False
+
+    try:
+        printer.check_print_worthiness(PrinterInstance.PERSONAL)
+        personal_is_okay = True
+    except NoPaperError:
+        personal_is_okay = False
+
+    return JsonResponse({ "personal": personal_is_okay, "mosaic": mosaic_is_okay }, status=200)
 
 # Normally, CSRF protection is good, but this will never be deployed anywhere
 @csrf_exempt

@@ -50,6 +50,11 @@ interface PrintResponse {
   message: string;
 }
 
+export interface PrintWorthinessResponse {
+  personal: boolean;
+  mosaic: boolean;
+}
+
 export const api = createApi({
   reducerPath: "api",
   baseQuery: fetchBaseQuery({
@@ -59,8 +64,8 @@ export const api = createApi({
     getMetadata: builder.query<Metadata, void>({
       query: () => "/metadata",
     }),
-    checkPrintWorthiness: builder.query<void, void>({
-      query: () => "/print-worthiness"
+    checkPrintWorthiness: builder.query<PrintWorthinessResponse, void>({
+      query: () => "/print-worthiness",
     }),
     print: builder.mutation<PrintResponse, FormData>({
       query: (body) => ({

@@ -13,6 +13,7 @@ import type WaSwitch from "@awesome.me/webawesome/dist/components/switch/switch.
 interface FormState {
   state: "open" | "loading" | "error" | "finished";
   message?: string;
+  title?: string;
 }
 
 @customElement("pba-printing")
@@ -28,6 +29,9 @@ export class Printing extends LitElement {
 
   @state()
   unsubscribe: (() => void) | null = null;
+
+  @state()
+  loading = false;
 
   @query("form")
   form!: HTMLFormElement;
@@ -50,7 +54,10 @@ export class Printing extends LitElement {
   async handleSubmit(event: SubmitEvent) {
     event.preventDefault();
     const body = new FormData(this.form);
+    this.loading = true;
+    await new Promise((resolve) => setTimeout(resolve, 3000));
     const result = await store.dispatch(api.endpoints.print.initiate(body));
+    this.loading = false;
     this.formState = {
       state: result.error ? "error" : "finished",
       title: result.error ? "Something went wrong" : "Success",
@@ -112,7 +119,7 @@ export class Printing extends LitElement {
                   class=${this.emailToMe ? "" : "invisible"}
                 ></wa-input>
               </div>
-              <wa-button type="submit" variant="brand">
+              <wa-button type="submit" variant="brand" .loading=${this.loading}>
                 Print and/or send
               </wa-button>
             </form>

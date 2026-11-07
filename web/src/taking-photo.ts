@@ -1,12 +1,12 @@
 import { customElement, query, state } from "lit/decorators.js";
-import { css, html, LitElement } from "lit";
+import { css, html, LitElement, nothing } from "lit";
 import "@awesome.me/webawesome/dist/components/button/button.js";
 import "@awesome.me/webawesome/dist/components/callout/callout.js";
 import "@awesome.me/webawesome/dist/components/icon/icon.js";
 import "@awesome.me/webawesome/dist/components/dialog/dialog.js";
 import { styleMap } from "lit/directives/style-map.js";
 import type { Metadata } from "./types.ts";
-import { api, appSlice, store } from "./store.ts";
+import { api, appSlice, type PrintWorthinessResponse, store } from "./store.ts";
 
 interface Size {
   left: number;
@@ -39,7 +39,7 @@ export class TakingPhoto extends LitElement {
   secondsLeft = 5;
 
   @state()
-  printerError = false;
+  printerWorthiness: PrintWorthinessResponse = { personal: true, mosaic: true };
 
   _getRenderedVideoSize(): Size {
     const naturalWidth = this.video.videoWidth;
@@ -93,12 +93,17 @@ export class TakingPhoto extends LitElement {
   }
 
   async checkPrintWorthiness() {
-    const result = await store.dispatch(api.endpoints.checkPrintWorthiness.initiate());
-    this.printerError = !result.isSuccess;
+    const result = await store.dispatch(
+      api.endpoints.checkPrintWorthiness.initiate(),
+    );
+
+    if (result.isSuccess) {
+      this.printerWorthiness = result.data!;
+    }
   }
 
   preventClose(e: Event) {
-    if (this.printerError) {
+    if (!this.printerWorthiness.mosaic) {
       e.preventDefault();
     }
   }
@@ -144,22 +149,57 @@ export class TakingPhoto extends LitElement {
     this.interval = setInterval(this.decrementTimer.bind(this), 1000);
   }
 
+  dismiss() {
+    this.printerWorthiness = { personal: true, mosaic: true };
+  }
+
   render() {
+    let message = "";
+    if (!this.printerWorthiness.mosaic && !this.printerWorthiness.personal) {
+      message =
+        'Both printers are out of paper. Please at least refill the printer labelled "For the Mosaic".';
+    } else if (
+      this.printerWorthiness.mosaic &&
+      !this.printerWorthiness.personal
+    ) {
+      message =
+        "The printer labelled \"For You\" is out of paper. You don't have to refill it, but you won't get a copy for yourself.";
+    } else if (
+      !this.printerWorthiness.mosaic &&
+      this.printerWorthiness.personal
+    ) {
+      message =
+        'The printer labelled "For the Mosaic" is out of paper. Please refill it.';
+    }
+
+    const popupIsOptional =
+      this.printerWorthiness.mosaic && !this.printerWorthiness.personal;
+
     return html`
       <wa-dialog
-          label="Printer Out of Paper"
-          .open=${this.printerError}
-          @wa-hide=${this.preventClose}
+        label="Printer Out of Paper"
+        .open=${!this.printerWorthiness.mosaic ||
+        !this.printerWorthiness.personal}
+        @wa-hide=${this.preventClose}
       >
-        One of the printers is out of paper. To refill:
+        ${message} To refill:
         <ol>
           <li>Push down on the top and slide in the direction of the arrow</li>
           <li>Put 10 more sheets inside, white side up</li>
           <li>Put the top back on, sliding the opposite direction of step 1</li>
         </ol>
-        <wa-button slot="footer" variant="brand" @click=${this.checkPrintWorthiness}>
+        <wa-button
+          slot="footer"
+          variant="brand"
+          @click=${this.checkPrintWorthiness}
+        >
           Retry
         </wa-button>
+        ${popupIsOptional
+          ? html`<wa-button slot="footer" @click=${this.dismiss}>
+              Okay
+            </wa-button>`
+          : nothing}
       </wa-dialog>
       <div class="container">
         <div class="viewfinder">

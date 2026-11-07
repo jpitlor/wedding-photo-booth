@@ -112,7 +112,7 @@ def print_image(image: Image, instance: PrinterInstance):
         printer.print(data)
 
 
-def check_print_worthiness():
-    for printer, _ in PRINTERS.values():
-        with printer.lock:
-            printer.check_print_worthiness()
+def check_print_worthiness(printer_instance: PrinterInstance):
+    printer, _ = PRINTERS[printer_instance]
+    with printer.lock:
+        printer.check_print_worthiness()
